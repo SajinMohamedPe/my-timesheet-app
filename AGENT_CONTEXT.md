@@ -103,8 +103,8 @@ localStorage; guards then allow entry. Real backend: JWT access+refresh.
 - **Search** is a command palette: typing filters features (icon + title +
   description) and navigates on click/Enter. Admin-only features are hidden for
   employees.
-- **Domain switcher** (top-right) appears when the user has >1 domain; it sets
-  the active domain that all scoped screens filter by.
+- **Domain switcher** (top-right, **admins only**) sets the active domain that
+  all scoped screens filter by. Hidden for employees (see decision #3).
 - **Reset demo data** ⟳ icon (also on Home) reseeds the mock.
 - **Sidebar** groups: CORE (Time Tracking → Timesheets, Visibility Plan, and for
   admins Leave Approvals/Reports/Timesheet Audit; plus Billing/Forecasting/
@@ -130,7 +130,9 @@ for admins), team size (admins). Quick-action links + Reset demo data.
 - **Delete:** every WBS and leave row has an always-visible trash icon → opens a
   confirmation modal explaining the **whole record** for the week will be removed.
 - **Admins** get an employee selector to view/edit anyone's timesheet in their
-  domain; admin edits to others are recorded in the audit log.
+  domain; admin edits to others are recorded in the audit log. For admins the
+  grid is **scoped to the active domain** (only that domain's group, WBS options,
+  leave rows and totals). For an employee's own grid, all their domains show.
 
 ### Visibility Plan (`/visibility`)
 - Month grid, one row per person, cells colour-coded by the legend (on-site
@@ -182,9 +184,17 @@ These were resolved through requirements interviews; keep them unless explicitly
 2. **Three roles**; **only Super Admin** grants admin rights and allocates
    domains to admins. Domain Admins can add employees to their own domain but
    cannot mint admins.
-3. **Admins can hold multiple domains** → domain switcher; every list/report/
-   queue filters by the active domain. Contractors can also span multiple
-   domains (weekly grid groups their WBS rows by domain).
+3. **The domain switcher is role-aware** (it's fundamentally an admin
+   anti-clutter/security boundary, not a restriction for contractors):
+   - **Admins** hold one or more domains and get the switcher; it scopes
+     *everything* to the active domain — visibility, reports, approvals, audit,
+     admin panel, **and** any contractor's timesheet they open (only that
+     domain's WBS rows, leave rows and totals). An AIM admin never sees a
+     contractor's Fisheries data.
+   - **Employees** have **no switcher**; their *own* weekly grid and visibility
+     span **all** their domains (grouped), because a contractor legitimately
+     works across projects in one week and shouldn't have to switch to finish a
+     timesheet.
 4. **Time entries save freely (no approval). Leave always requires approval**,
    routed to the domain admin's queue. Editing a leave re-triggers approval.
 5. **Leave is entered as hours, max 7.25/day** (the standard Deloitte working

@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -60,14 +60,26 @@ export class WeeklyGridComponent implements OnInit {
   leaves = signal<LeaveRequest[]>([]);
   saving = signal(false);
 
+  constructor() {
+    // Admins: when the active domain changes, reload the (domain-scoped) user
+    // list and reset to a user in that domain. Employees have no switcher.
+    effect(() => {
+      const domainId = this.ctx.selectedId();
+      if (!this.auth.isAdmin()) return;
+      this.api.getUsers(domainId ?? undefined).subscribe((u) => {
+        this.users.set(u);
+        if (!u.some((x) => x.id === this.selectedUserId())) {
+          this.selectedUserId.set(u[0]?.id ?? this.auth.user()!.id);
+        }
+        this.extraRows.set({}); this.extraLeave.set(new Set());
+        this.reload();
+      });
+    });
+  }
+
   ngOnInit(): void {
     this.selectedUserId.set(this.auth.user()!.id);
-    if (this.auth.isAdmin()) {
-      this.api.getUsers(this.ctx.selectedId() ?? undefined).subscribe((u) => {
-        this.users.set(u);
-        if (!u.some((x) => x.id === this.selectedUserId())) this.selectedUserId.set(u[0]?.id ?? this.auth.user()!.id);
-      });
-    } else {
+    if (!this.auth.isAdmin()) {
       this.users.set([this.auth.user() as unknown as User]);
     }
     this.api.getDomains().subscribe((d) => this.domains.set(d));
@@ -96,13 +108,21 @@ export class WeeklyGridComponent implements OnInit {
   nextWeek(): void { this.weekAnchor.set(addDays(this.weekAnchor(), 7)); this.reload(); }
   isWeekend = isWeekend;
 
-  /** Domains the selected user belongs to, each with its WBS rows for the grid. */
+  /**
+   * Domains shown in the grid.
+   * - Employee viewing their own sheet: ALL their domains (they work across
+   *   projects, so no single-domain restriction).
+   * - Admin viewing anyone: only the currently selected domain (anti-clutter;
+   *   an AIM admin never sees a contractor's Fisheries rows).
+   */
   groups = computed<DomainGroup[]>(() => {
     const user = this.selectedUser();
     if (!user) return [];
     const extra = this.extraRows();
+    const activeDomain = this.ctx.selectedId();
     return this.domains()
       .filter((d) => user.domainIds.includes(d.id))
+      .filter((d) => !this.auth.isAdmin() || !activeDomain || d.id === activeDomain)
       .map((domain) => {
         const domainWbs = this.allWbs().filter((w) => w.domainId === domain.id);
         const usedIds = new Set(this.entries().filter((e) => e.domainId === domain.id).map((e) => e.wbsCodeId));
@@ -139,7 +159,10 @@ export class WeeklyGridComponent implements OnInit {
     // Only leave types with data IN THE VISIBLE WEEK (plus rows added via the
     // picker this session) — so deleting a week's leave removes its row.
     const weekIsos = new Set(this.days().map((d) => isoDate(d)));
-    const withData = new Set(this.leaves().filter((l) => weekIsos.has(l.date)).map((l) => l.type));
+    const vis = this.visibleDomainIdSet();
+    const withData = new Set(
+      this.leaves().filter((l) => weekIsos.has(l.date) && vis.has(l.domainId)).map((l) => l.type),
+    );
     this.extraLeave().forEach((t) => withData.add(t));
     return this.leaveTypes.filter((lt) => withData.has(lt.type));
   });
@@ -187,7 +210,8 @@ export class WeeklyGridComponent implements OnInit {
   // ---- Leave cells (editable; hours up to 7.25; edits re-trigger approval) ----
   leaveFor(type: LeaveType, day: Date): LeaveRequest | undefined {
     const d = isoDate(day);
-    return this.leaves().find((l) => l.type === type && l.date === d);
+    const vis = this.visibleDomainIdSet();
+    return this.leaves().find((l) => l.type === type && l.date === d && vis.has(l.domainId));
   }
   leaveHours(type: LeaveType, day: Date): number | null {
     return this.leaveFor(type, day)?.hours ?? null;
@@ -288,11 +312,14 @@ export class WeeklyGridComponent implements OnInit {
     toDelete.forEach((l) => this.api.deleteLeave(l.id).subscribe(() => { if (++done === toDelete.length) after(); }));
   }
 
-  // ---- Totals ----
+  // ---- Totals (scoped to the domains currently shown in the grid) ----
+  private visibleDomainIdSet = computed(() => new Set(this.groups().map((g) => g.domain.id)));
+
   dayTotal(day: Date): number {
     const d = isoDate(day);
-    const t = this.entries().filter((e) => e.date === d).reduce((s, e) => s + e.hours, 0);
-    const lv = this.leaves().filter((l) => l.date === d && l.status !== 'REJECTED')
+    const vis = this.visibleDomainIdSet();
+    const t = this.entries().filter((e) => e.date === d && vis.has(e.domainId)).reduce((s, e) => s + e.hours, 0);
+    const lv = this.leaves().filter((l) => l.date === d && l.status !== 'REJECTED' && vis.has(l.domainId))
       .reduce((s, l) => s + (l.hours || 0), 0);
     return Math.round((t + lv) * 100) / 100;
   }

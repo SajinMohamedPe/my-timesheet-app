@@ -50,7 +50,7 @@ interface NavGroup { heading: string; items: NavParent[]; }
 
       <span class="spacer"></span>
 
-      @if (ctx.domains().length) {
+      @if (auth.isAdmin() && ctx.domains().length) {
         <button class="domain-switch" [matMenuTriggerFor]="dmenu" [disabled]="!ctx.hasMultiple()">
           <mat-icon>workspaces</mat-icon>
           <span>{{ ctx.selected()?.name ?? 'All domains' }}</span>
