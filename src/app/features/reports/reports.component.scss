@@ -1,0 +1,23 @@
+h3 { margin: 0 0 4px; }
+.controls { display: flex; gap: 16px; align-items: flex-end; margin-top: 18px; flex-wrap: wrap; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 11px; color: var(--dtt-muted); letter-spacing: .05em; }
+.field select, .field input { padding: 10px 12px; border: 1px solid var(--dtt-line); border-radius: 8px; font-size: 14px; min-width: 240px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: 8px; padding: 11px 16px; cursor: pointer; color: #fff; font-weight: 600; }
+.btn mat-icon { font-size: 18px; width: 18px; height: 18px; }
+.btn.excel { background: #1e7145; }
+.btn.pdf { background: #b4322f; }
+.note { display: flex; align-items: center; gap: 8px; margin-top: 16px; background: #eef6f9; border: 1px solid #d5e8ef; border-radius: 8px; padding: 10px 14px; font-size: 13px; }
+.note mat-icon { color: #3a86a8; font-size: 18px; width: 18px; height: 18px; }
+
+.quick { margin-top: 26px; }
+.qtitle { font-size: 11px; letter-spacing: .06em; color: var(--dtt-muted); margin-bottom: 12px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.qcard { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid var(--dtt-line); border-radius: 12px; padding: 14px 16px; }
+.qcard .info { flex: 1; }
+.qcard .n { font-weight: 600; }
+.qcard .s { font-size: 11px; }
+.ava { width: 34px; height: 34px; border-radius: 50%; background: var(--dtt-green); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600; }
+.acts { display: flex; gap: 6px; }
+.acts button { border: 1px solid var(--dtt-line); background: #f7f8f9; border-radius: 6px; padding: 5px 10px; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--dtt-muted); }
+.acts button:hover { border-color: var(--dtt-green); color: var(--dtt-green-dark); }

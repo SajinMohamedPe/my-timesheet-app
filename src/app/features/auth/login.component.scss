@@ -1,0 +1,46 @@
+.login { display: flex; min-height: 100vh; }
+
+.panel-left {
+  width: 460px; max-width: 45%; padding: 56px 48px; background: #fff;
+  display: flex; flex-direction: column; justify-content: center;
+}
+.brand { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; }
+.brand .bar { width: 5px; height: 34px; background: var(--dtt-green); border-radius: 2px; }
+.brand-name { font-size: 22px; font-weight: 700; }
+.brand-sub { font-size: 12px; color: var(--dtt-muted); }
+
+h1 { margin: 0 0 4px; font-size: 30px; }
+form { margin-top: 24px; display: flex; flex-direction: column; }
+label { font-size: 11px; letter-spacing: .05em; color: var(--dtt-muted); margin: 18px 0 6px; }
+input {
+  padding: 12px 14px; border: 1px solid var(--dtt-line); border-radius: 8px; font-size: 15px;
+}
+input:focus { outline: none; border-color: var(--dtt-green); }
+button {
+  margin-top: 26px; padding: 13px; border: none; border-radius: 8px; cursor: pointer;
+  background: var(--dtt-green); color: #fff; font-size: 15px; font-weight: 600;
+}
+button:disabled { opacity: .6; cursor: default; }
+.error { color: #b23; margin-top: 14px; font-size: 14px; }
+
+.demo { margin-top: 40px; border-top: 1px solid var(--dtt-line); padding-top: 18px; }
+.demo-title { font-size: 11px; letter-spacing: .05em; color: var(--dtt-muted); margin-bottom: 10px; }
+.demo-row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+.demo-row .u { font-weight: 600; flex: 1; }
+.demo-row .p { flex: 1; color: var(--dtt-muted); }
+.demo-row .r { color: var(--dtt-muted); }
+.small { font-size: 12px; margin-top: 12px; }
+
+.panel-right {
+  flex: 1; background: #1d1f1d; color: #fff; display: flex; flex-direction: column;
+  justify-content: center; align-items: center; padding: 40px; position: relative;
+}
+.chart { display: flex; align-items: flex-end; gap: 8px; height: 180px; margin-bottom: 40px; }
+.chart span { width: 14px; background: var(--dtt-green); border-radius: 3px 3px 0 0; }
+.right-title { font-size: 30px; font-weight: 700; color: #3a3d3a; text-align: center; line-height: 1.2; }
+
+@media (max-width: 760px) {
+  .login { flex-direction: column; }
+  .panel-left { width: 100%; max-width: 100%; padding: 32px 20px; }
+  .panel-right { min-height: 220px; }
+}

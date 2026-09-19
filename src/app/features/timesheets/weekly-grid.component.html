@@ -1,0 +1,115 @@
+<h2 class="page-title">Time Tracking</h2>
+<p class="breadcrumb">Time Tracking · Weekly Timesheet</p>
+
+<div class="toolbar card">
+  @if (auth.isAdmin()) {
+    <div class="field">
+      <label>Timesheet for</label>
+      <select [ngModel]="selectedUserId()" (ngModelChange)="changeUser($event)">
+        @for (u of users(); track u.id) { <option [value]="u.id">{{ u.name }}</option> }
+      </select>
+    </div>
+  }
+  <span class="spacer"></span>
+  <div class="weeknav">
+    <button (click)="prevWeek()"><mat-icon>chevron_left</mat-icon></button>
+    <span class="range">{{ rangeLabel() }}</span>
+    <button (click)="nextWeek()"><mat-icon>chevron_right</mat-icon></button>
+  </div>
+  <div class="wtotal">
+    <div class="v">{{ weekTotal() }}<span>h</span></div>
+    <div class="l">this week @if (saving()) { · saving… }</div>
+  </div>
+</div>
+
+<div class="grid card">
+  <table class="wk">
+    <thead>
+      <tr>
+        <th class="rowhead">Project / Charge code</th>
+        @for (d of days(); track $index) {
+          <th class="day" [class.weekend]="isWeekend(d)">
+            <div class="dn">{{ d.getDate() }}</div>
+            <div class="dl">{{ d.toLocaleDateString('en-IE', { weekday: 'short' }) }}</div>
+          </th>
+        }
+        <th class="total">Weekly</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <!-- Time groups by domain -->
+      @for (g of groups(); track g.domain.id) {
+        <tr class="group"><td [attr.colspan]="9">
+          <mat-icon>workspaces</mat-icon> {{ g.domain.name }}
+          <span class="muted">— {{ g.domain.description }}</span>
+        </td></tr>
+
+        @for (row of g.rows; track row.wbs.id) {
+          <tr>
+            <td class="rowhead">
+              <div class="code">{{ row.wbs.code }}</div>
+              <div class="desc">{{ row.wbs.currentName }}</div>
+            </td>
+            @for (d of days(); track $index) {
+              <td class="cell" [class.weekend]="isWeekend(d)">
+                <input type="number" min="0" max="24" step="0.5"
+                  [value]="hoursFor(row.wbs.id, d) ?? ''"
+                  (change)="setHours(row, d, $any($event.target).value)" />
+              </td>
+            }
+            <td class="total">{{ rowTotal(row.wbs.id) || '' }}</td>
+          </tr>
+        }
+
+        <tr class="addrow">
+          <td class="rowhead">
+            @if (availableToAdd(g.domain.id).length) {
+              <button class="add" [matMenuTriggerFor]="menu"><mat-icon>add</mat-icon> Add charge code</button>
+              <mat-menu #menu="matMenu">
+                @for (w of availableToAdd(g.domain.id); track w.id) {
+                  <button mat-menu-item (click)="addRow(g.domain.id, w.id)">{{ w.code }} — {{ w.currentName }}</button>
+                }
+              </mat-menu>
+            } @else { <span class="muted small">All charge codes added</span> }
+          </td>
+          <td [attr.colspan]="8"></td>
+        </tr>
+      }
+
+      <!-- Absence group -->
+      <tr class="group absence"><td [attr.colspan]="9"><mat-icon>beach_access</mat-icon> Absence / Leave <span class="muted">— requires approval</span></td></tr>
+      @for (lt of leaveTypes; track lt.type) {
+        <tr>
+          <td class="rowhead"><div class="desc">{{ lt.label }}</div></td>
+          @for (d of days(); track $index) {
+            <td class="cell leave {{ leaveStatusClass(lt.type, d) }}" [class.weekend]="isWeekend(d)">
+              @if (leaveFor(lt.type, d)) {
+                <span class="lchip" [title]="leaveFor(lt.type, d)?.status">{{ leaveDisplay(lt.type, d) }}</span>
+              } @else {
+                <input type="number" min="0" max="8" step="4" placeholder=""
+                  (change)="setLeave(lt.type, d, $any($event.target).value)" />
+              }
+            </td>
+          }
+          <td class="total">{{ leaveRowTotal(lt.type) || '' }}</td>
+        </tr>
+      }
+    </tbody>
+
+    <tfoot>
+      <tr>
+        <td class="rowhead">Daily total</td>
+        @for (d of days(); track $index) {
+          <td class="total" [class.weekend]="isWeekend(d)">{{ dayTotal(d) || '' }}</td>
+        }
+        <td class="grand">{{ weekTotal() }}</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <p class="hint muted small">
+    Enter hours per day against a charge code — saved automatically. Leave cells (Absence) create an
+    approval request routed to the domain admin. 8h = 1 day. Weekends are auto Bank Holiday.
+  </p>
+</div>

@@ -1,0 +1,114 @@
+<h2 class="page-title">Time Tracking</h2>
+<p class="breadcrumb">Time Tracking · Visibility Plan</p>
+
+<div class="card headerbar">
+  <div class="row">
+    <h3 class="vp-title">Visibility Plan</h3>
+    <button class="nav" (click)="prevMonth()"><mat-icon>chevron_left</mat-icon></button>
+    <span class="month">{{ monthLabel() }}</span>
+    <button class="nav" (click)="nextMonth()"><mat-icon>chevron_right</mat-icon></button>
+    <span class="spacer"></span>
+    <button class="link" (click)="showLegend.set(!showLegend())">
+      <mat-icon>{{ showLegend() ? 'expand_less' : 'expand_more' }}</mat-icon> Legend
+    </button>
+    @if (auth.isAdmin()) {
+      <button class="btn ghost" [matMenuTriggerFor]="dl"><mat-icon>download</mat-icon> Download Project Summary</button>
+      <mat-menu #dl="matMenu">
+        <button mat-menu-item (click)="download('DOMAIN','xlsx')">This domain — Excel</button>
+        <button mat-menu-item (click)="download('DOMAIN','pdf')">This domain — PDF</button>
+        <button mat-menu-item (click)="download('ALL','xlsx')">All my domains — Excel</button>
+        <button mat-menu-item (click)="download('ALL','pdf')">All my domains — PDF</button>
+      </mat-menu>
+      <label class="btn green">
+        <mat-icon>upload</mat-icon> Upload Timesheet
+        <input type="file" accept=".xlsx,.xls" hidden (change)="onFile($event)" />
+      </label>
+    }
+  </div>
+
+  @if (showLegend()) {
+    <div class="legend">
+      <span><i class="sw work"></i> On-Site Chargeable Day</span>
+      <span><i class="sw annual"></i> Annual Leave</span>
+      <span><i class="sw sick"></i> Sick Leave</span>
+      <span><i class="sw training"></i> Deloitte Training</span>
+      <span><i class="sw internal"></i> Internal / Practice / All-Hands / Gems</span>
+      <span><i class="sw bank"></i> Bank Holiday / Public Holiday</span>
+      <span><i class="sw pending"></i> Pending</span>
+      <em class="muted">* Weekends auto-marked as Bank Holiday</em>
+    </div>
+  }
+
+  @if (busy()) { <div class="busy">{{ busy() }}</div> }
+</div>
+
+@if (auth.isAdmin()) {
+  <div class="tabs">
+    <button [class.active]="tab()==='LIVE'" (click)="tab.set('LIVE')">Live Plan</button>
+    <button [class.active]="tab()==='UPLOADED'" (click)="tab.set('UPLOADED')">Uploaded Timesheet</button>
+    <button [class.active]="tab()==='DIFF'" (click)="tab.set('DIFF')">Differences</button>
+  </div>
+}
+
+@if (tab()==='LIVE') {
+  <div class="card gridwrap">
+    <table class="plan">
+      <thead>
+        <tr>
+          <th class="emp">Employee</th>
+          @for (d of daysInMonth(); track $index) {
+            <th class="d" [class.weekend]="isWeekend(d)"><div>{{ d.getDate() }}</div><small>{{ ['S','M','T','W','T','F','S'][d.getDay()] }}</small></th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of plan()?.rows ?? []; track r.userId) {
+          <tr>
+            <td class="emp"><span class="ava">{{ r.name[0] }}</span> {{ r.name }}</td>
+            @for (d of daysInMonth(); track $index) {
+              @let c = cell(r.userId, d);
+              <td class="cell {{ cellClass(c) }}" [class.weekend]="isWeekend(d)" [title]="c.type ?? c.kind">{{ c.label }}</td>
+            }
+          </tr>
+        }
+        @if (!(plan()?.rows?.length)) { <tr><td [attr.colspan]="32" class="muted empty">No data for this period.</td></tr> }
+      </tbody>
+    </table>
+  </div>
+}
+
+@if (tab()==='UPLOADED') {
+  <div class="card">
+    <h3>Uploaded Timesheet — {{ monthLabel() }}</h3>
+    <p class="muted small">External hours imported for staff who don't log in-app. Feeds the merged Project Summary.</p>
+    <table class="dtt">
+      <thead><tr><th>Name</th><th>WBS Code</th><th>Project</th><th>Hours</th></tr></thead>
+      <tbody>
+        @for (u of uploaded(); track u.id) {
+          <tr><td>{{ u.userName }}</td><td>{{ u.wbsCode }}</td><td>{{ u.project }}</td><td>{{ u.hours }}</td></tr>
+        }
+        @if (!uploaded().length) { <tr><td colspan="4" class="muted">Nothing uploaded yet. Use “Upload Timesheet”.</td></tr> }
+      </tbody>
+    </table>
+  </div>
+}
+
+@if (tab()==='DIFF') {
+  <div class="card">
+    <h3>Differences — in-app vs uploaded</h3>
+    <p class="muted small">Rows where the hours logged in this app differ from the uploaded export (monthly totals per person).</p>
+    <table class="dtt">
+      <thead><tr><th>Name</th><th>WBS</th><th>Project</th><th>In-app</th><th>Uploaded</th><th>Δ</th></tr></thead>
+      <tbody>
+        @for (d of diffRows(); track d.name) {
+          <tr>
+            <td>{{ d.name }}</td><td>{{ d.wbsCode }}</td><td>{{ d.project }}</td>
+            <td>{{ d.app }}h</td><td>{{ d.uploaded }}h</td>
+            <td><span class="chip" [class.red]="d.delta!==0">{{ d.delta > 0 ? '+' : '' }}{{ d.delta }}h</span></td>
+          </tr>
+        }
+        @if (!diffRows().length) { <tr><td colspan="6" class="chip green">✓ No differences — in-app and uploaded match.</td></tr> }
+      </tbody>
+    </table>
+  </div>
+}

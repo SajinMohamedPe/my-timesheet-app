@@ -1,0 +1,139 @@
+<h2 class="page-title">Admin Panel</h2>
+<p class="breadcrumb">Manage domains, WBS codes and user roles · {{ ctx.selected()?.name ?? 'All domains' }}</p>
+
+<div class="card tabbar">
+  <div class="left">
+    <h3>Admin Panel</h3>
+    <p class="muted">Manage domains, WBS codes and user roles.</p>
+  </div>
+  <div class="tabs">
+    @if (auth.isSuperAdmin()) {
+      <button [class.active]="tab()==='DOMAINS'" (click)="tab.set('DOMAINS')"><mat-icon>workspaces</mat-icon> Domains</button>
+    }
+    <button [class.active]="tab()==='WBS'" (click)="tab.set('WBS')"><mat-icon>tag</mat-icon> WBS Codes</button>
+    <button [class.active]="tab()==='USERS'" (click)="tab.set('USERS')"><mat-icon>group</mat-icon> Users &amp; Roles</button>
+  </div>
+</div>
+
+<!-- DOMAINS -->
+@if (tab()==='DOMAINS') {
+  <div class="card">
+    <div class="th-row">
+      <span class="count">{{ domains().length }} domains</span>
+      <span class="spacer"></span>
+      <button class="btn green" (click)="addingDomain.set(!addingDomain())"><mat-icon>add</mat-icon> Add Domain</button>
+    </div>
+    @if (addingDomain()) {
+      <div class="addform">
+        <input placeholder="Name (e.g. AIM)" [(ngModel)]="newDomain.name" />
+        <input placeholder="Description" [(ngModel)]="newDomain.description" />
+        <button class="btn green" (click)="saveDomain()">Save</button>
+        <button class="btn ghost" (click)="addingDomain.set(false)">Cancel</button>
+      </div>
+    }
+    <table class="dtt">
+      <thead><tr><th>Name</th><th>Description</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+        @for (d of domains(); track d.id) {
+          <tr>
+            <td><b>{{ d.name }}</b></td>
+            <td class="muted">{{ d.description }}</td>
+            <td><span class="chip" [class.green]="d.active" [class.grey]="!d.active">{{ d.active ? 'Active' : 'Inactive' }}</span></td>
+            <td>
+              <button class="edit" (click)="editDomain(d)"><mat-icon>edit</mat-icon> Edit</button>
+              <button class="del" (click)="deleteDomain(d)"><mat-icon>delete</mat-icon></button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+<!-- WBS -->
+@if (tab()==='WBS') {
+  <div class="card">
+    <div class="th-row">
+      <span class="count">{{ wbs().length }} WBS codes · {{ ctx.selected()?.name ?? 'all domains' }}</span>
+      <span class="spacer"></span>
+      <button class="btn green" (click)="addingWbs.set(!addingWbs())" [disabled]="!ctx.selectedId()"><mat-icon>add</mat-icon> Add WBS</button>
+    </div>
+    @if (addingWbs()) {
+      <div class="addform">
+        <input placeholder="Code (e.g. WBS-1005)" [(ngModel)]="newWbs.code" />
+        <input placeholder="Client code (e.g. DLT-005)" [(ngModel)]="newWbs.clientCode" />
+        <input placeholder="Project / description" [(ngModel)]="newWbs.description" />
+        <button class="btn green" (click)="saveWbs()">Save</button>
+        <button class="btn ghost" (click)="addingWbs.set(false)">Cancel</button>
+      </div>
+    }
+    <table class="dtt">
+      <thead><tr><th>WBS Code</th><th>Project Name</th><th>Code / Description</th><th>Domain</th><th>Actions</th></tr></thead>
+      <tbody>
+        @for (w of wbs(); track w.id) {
+          <tr>
+            <td><b>{{ w.code }}</b></td>
+            <td>{{ w.currentName }}</td>
+            <td class="muted">{{ w.clientCode }}</td>
+            <td><span class="chip green">{{ domainName(w.domainId) }}</span></td>
+            <td>
+              <button class="edit" (click)="renameWbs(w)"><mat-icon>edit</mat-icon> Rename</button>
+              <button class="del" (click)="deleteWbs(w)"><mat-icon>delete</mat-icon></button>
+            </td>
+          </tr>
+        }
+        @if (!wbs().length) { <tr><td colspan="5" class="muted">No WBS codes. Select a domain and add one.</td></tr> }
+      </tbody>
+    </table>
+  </div>
+}
+
+<!-- USERS -->
+@if (tab()==='USERS') {
+  <div class="card">
+    <div class="info-banner">
+      <mat-icon>info</mat-icon>
+      Admin rights are a <b>role</b> on any employee account. Only a <b>Super Admin</b> grants admin rights and allocates which domain(s) an admin manages.
+    </div>
+    <div class="th-row">
+      <span class="count">{{ users().length }} users · {{ ctx.selected()?.name ?? 'all domains' }}</span>
+      <span class="spacer"></span>
+      <button class="btn green" (click)="addingUser.set(!addingUser())" [disabled]="!ctx.selectedId()"><mat-icon>person_add</mat-icon> Add User</button>
+    </div>
+    @if (addingUser()) {
+      <div class="addform">
+        <input placeholder="Full name" [(ngModel)]="newUser.name" />
+        <input placeholder="Username" [(ngModel)]="newUser.username" />
+        <input placeholder="Email" [(ngModel)]="newUser.email" />
+        <select [(ngModel)]="newUser.type"><option value="CONTRACTOR">Contractor</option><option value="STAFF">Staff</option></select>
+        <button class="btn green" (click)="saveUser()">Save</button>
+        <button class="btn ghost" (click)="addingUser.set(false)">Cancel</button>
+      </div>
+    }
+    <table class="dtt">
+      <thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Type</th><th>Domains</th><th>Role</th><th>Action</th></tr></thead>
+      <tbody>
+        @for (u of users(); track u.id) {
+          <tr>
+            <td><b>{{ u.name }}</b></td>
+            <td class="muted">{{ u.username }}</td>
+            <td class="muted">{{ u.email }}</td>
+            <td>{{ u.type === 'STAFF' ? 'Staff' : 'Contractor' }}</td>
+            <td>@for (id of u.domainIds; track id) { <span class="chip green sm">{{ domainName(id) }}</span> }</td>
+            <td><span class="chip" [class.amber]="u.role!=='EMPLOYEE'" [class.grey]="u.role==='EMPLOYEE'">
+              @if (u.role !== 'EMPLOYEE') { <mat-icon class="key">vpn_key</mat-icon> } {{ roleChip(u) }}
+            </span></td>
+            <td>
+              @if (isMe(u)) { <span class="muted small">You</span> }
+              @else if (u.role === 'SUPER_ADMIN') { <span class="muted small">—</span> }
+              @else if (auth.isSuperAdmin()) {
+                @if (u.role === 'EMPLOYEE') { <button class="btn green sm" (click)="grant(u)">Grant Admin</button> }
+                @else { <button class="btn ghost sm" (click)="revoke(u)">Revoke Admin</button> }
+              } @else { <span class="muted small">Super Admin only</span> }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

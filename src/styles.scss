@@ -1,0 +1,74 @@
+@use '@angular/material' as mat;
+
+// Deloitte-green Material theme.
+html {
+  @include mat.theme((
+    color: (
+      primary: mat.$spring-green-palette,
+      tertiary: mat.$green-palette,
+    ),
+    typography: Roboto,
+    density: 0,
+  ));
+  color-scheme: light;
+}
+
+:root {
+  --dtt-green: #86bc25;
+  --dtt-green-dark: #6a9a17;
+  --dtt-ink: #26282a;
+  --dtt-muted: #6b6f73;
+  --dtt-line: #e4e7ea;
+  --dtt-bg: #f5f6f7;
+  --dtt-card: #ffffff;
+
+  // Bend Material's primary onto Deloitte green.
+  --mat-sys-primary: #6a9a17;
+  --mat-sys-on-primary: #ffffff;
+}
+
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  background: var(--dtt-bg);
+  color: var(--dtt-ink);
+}
+
+// ---- Shared utility classes ----
+.card {
+  background: var(--dtt-card);
+  border: 1px solid var(--dtt-line);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .03);
+}
+.page-title { font-size: 22px; font-weight: 600; margin: 0; }
+.breadcrumb { color: var(--dtt-muted); font-size: 13px; margin: 2px 0 20px; }
+.muted { color: var(--dtt-muted); }
+.spacer { flex: 1 1 auto; }
+.row { display: flex; gap: 16px; align-items: center; }
+.wrap { flex-wrap: wrap; }
+
+.btn-green {
+  background: var(--dtt-green) !important;
+  color: #fff !important;
+}
+.chip {
+  display: inline-block; padding: 2px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; background: #eef4e0; color: var(--dtt-green-dark);
+}
+.chip.grey { background: #eceef0; color: #555; }
+.chip.amber { background: #fdf1d6; color: #9a6b00; }
+.chip.red { background: #fde3e3; color: #b23; }
+.chip.green { background: #e5f2d3; color: var(--dtt-green-dark); }
+
+table.dtt { width: 100%; border-collapse: collapse; }
+table.dtt th {
+  text-align: left; font-size: 12px; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--dtt-muted); padding: 12px 14px; border-bottom: 2px solid var(--dtt-line);
+}
+table.dtt td { padding: 12px 14px; border-bottom: 1px solid var(--dtt-line); }
+table.dtt tr:hover td { background: #fafbfa; }
+
+.toolbar-btn { border-radius: 8px !important; }
