@@ -9,7 +9,7 @@ import { ApiService, WbsCodeView } from '../../core/services/api.service';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { SearchSelectComponent, SelectOption } from '../../shared/search-select.component';
 import {
-  Domain, LeaveDuration, LeaveRequest, LeaveType, TimeEntry, User,
+  Domain, LeaveRequest, LeaveType, MAX_LEAVE_HOURS_PER_DAY, TimeEntry, User,
 } from '../../core/models/models';
 import { addDays, fmtRange, isoDate, isWeekend, weekDays, weekStart } from '../../core/util/dates';
 
@@ -24,6 +24,10 @@ const LEAVE_TYPES: { type: LeaveType; label: string }[] = [
   { type: 'BANK_HOLIDAY', label: 'Bank Holiday' },
 ];
 
+const LEAVE_KEY: Record<LeaveType, string> = {
+  ANNUAL: 'annual', SICK: 'sick', TRAINING: 'training', INTERNAL: 'internal', BANK_HOLIDAY: 'bank',
+};
+
 @Component({
   selector: 'dtt-weekly-grid',
   imports: [FormsModule, MatIconModule, MatMenuModule, PageHeaderComponent, SearchSelectComponent],
@@ -36,6 +40,7 @@ export class WeeklyGridComponent implements OnInit {
   private api = inject(ApiService);
 
   readonly leaveTypes = LEAVE_TYPES;
+  readonly maxLeave = MAX_LEAVE_HOURS_PER_DAY;
   weekAnchor = signal(weekStart(new Date()));
   days = computed(() => weekDays(this.weekAnchor()));
   rangeLabel = computed(() => fmtRange(this.days()));
@@ -144,6 +149,10 @@ export class WeeklyGridComponent implements OnInit {
     this.extraLeave.set(s);
   }
 
+  // ---- Formatting (always 2 decimals) ----
+  fmtCell(n: number | null): string { return n == null ? '' : n.toFixed(2); }
+  fmtTotal(n: number): string { return n ? n.toFixed(2) : ''; }
+
   // ---- Time cells ----
   entryFor(wbsId: string, day: Date): TimeEntry | undefined {
     const d = isoDate(day);
@@ -171,32 +180,70 @@ export class WeeklyGridComponent implements OnInit {
     }
   }
 
-  // ---- Leave cells ----
+  // ---- Leave cells (editable; hours up to 7.25; edits re-trigger approval) ----
   leaveFor(type: LeaveType, day: Date): LeaveRequest | undefined {
     const d = isoDate(day);
     return this.leaves().find((l) => l.type === type && l.date === d);
   }
-  leaveDisplay(type: LeaveType, day: Date): string {
-    const l = this.leaveFor(type, day);
-    if (!l) return '';
-    const h = l.duration === 'HALF' ? '4' : '8';
-    return h;
+  leaveHours(type: LeaveType, day: Date): number | null {
+    return this.leaveFor(type, day)?.hours ?? null;
   }
   leaveStatusClass(type: LeaveType, day: Date): string {
     const l = this.leaveFor(type, day);
     return l ? l.status.toLowerCase() : '';
   }
+  leaveStatusLabel(type: LeaveType, day: Date): string {
+    const l = this.leaveFor(type, day);
+    return l ? l.status : '';
+  }
+  leaveKey(type: LeaveType): string { return LEAVE_KEY[type]; }
   setLeave(type: LeaveType, day: Date, value: string): void {
     const existing = this.leaveFor(type, day);
     const date = isoDate(day);
     const domainId = this.ctx.selectedId() ?? this.selectedUser()?.domainIds[0]!;
     this.saving.set(true);
     const done = () => { this.saving.set(false); this.reload(); };
-    const num = parseFloat(value);
-    if (!value || isNaN(num) || num <= 0) { this.saving.set(false); return; }
-    const duration: LeaveDuration = num <= 4 ? 'HALF' : 'FULL';
-    if (existing) { this.saving.set(false); return; } // already requested; managed via approvals
-    this.api.createLeave({ userId: this.selectedUserId(), domainId, type, date, duration }).subscribe(done);
+    let num = parseFloat(value);
+    if (!value || isNaN(num) || num <= 0) {
+      if (existing) this.api.deleteLeave(existing.id).subscribe(done); else this.saving.set(false);
+      return;
+    }
+    num = Math.min(this.maxLeave, Math.round(num * 100) / 100); // cap at 7.25
+    if (existing) {
+      this.api.updateLeave(existing.id, { hours: num }).subscribe(done); // resets to PENDING
+    } else {
+      this.api.createLeave({ userId: this.selectedUserId(), domainId, type, date, hours: num }).subscribe(done);
+    }
+  }
+
+  // ---- Remove rows ----
+  removeWbsRow(row: WbsRow): void {
+    if (!confirm(`Remove ${row.wbs.code} and clear its entries for this week?`)) return;
+    this.saving.set(true);
+    const toDelete = this.days()
+      .map((d) => this.entryFor(row.wbs.id, d)).filter((e): e is TimeEntry => !!e);
+    const after = () => {
+      const cur = { ...this.extraRows() };
+      cur[row.wbs.domainId] = (cur[row.wbs.domainId] ?? []).filter((id) => id !== row.wbs.id);
+      this.extraRows.set(cur);
+      this.saving.set(false); this.reload();
+    };
+    if (!toDelete.length) { after(); return; }
+    let done = 0;
+    toDelete.forEach((e) => this.api.deleteTimeEntry(e.id).subscribe(() => { if (++done === toDelete.length) after(); }));
+  }
+  removeLeaveRow(type: LeaveType): void {
+    if (!confirm('Remove this leave row and delete its requests for this week?')) return;
+    this.saving.set(true);
+    const toDelete = this.days()
+      .map((d) => this.leaveFor(type, d)).filter((l): l is LeaveRequest => !!l);
+    const after = () => {
+      const s = new Set(this.extraLeave()); s.delete(type); this.extraLeave.set(s);
+      this.saving.set(false); this.reload();
+    };
+    if (!toDelete.length) { after(); return; }
+    let done = 0;
+    toDelete.forEach((l) => this.api.deleteLeave(l.id).subscribe(() => { if (++done === toDelete.length) after(); }));
   }
 
   // ---- Totals ----
@@ -204,17 +251,17 @@ export class WeeklyGridComponent implements OnInit {
     const d = isoDate(day);
     const t = this.entries().filter((e) => e.date === d).reduce((s, e) => s + e.hours, 0);
     const lv = this.leaves().filter((l) => l.date === d && l.status !== 'REJECTED')
-      .reduce((s, l) => s + (l.duration === 'HALF' ? 4 : 8), 0);
-    return t + lv;
+      .reduce((s, l) => s + (l.hours || 0), 0);
+    return Math.round((t + lv) * 100) / 100;
   }
   rowTotal(wbsId: string): number {
-    return this.days().reduce((s, d) => s + (this.hoursFor(wbsId, d) ?? 0), 0);
+    return Math.round(this.days().reduce((s, d) => s + (this.hoursFor(wbsId, d) ?? 0), 0) * 100) / 100;
   }
   leaveRowTotal(type: LeaveType): number {
-    return this.days().reduce((s, d) => {
+    return Math.round(this.days().reduce((s, d) => {
       const l = this.leaveFor(type, d);
-      return s + (l && l.status !== 'REJECTED' ? (l.duration === 'HALF' ? 4 : 8) : 0);
-    }, 0);
+      return s + (l && l.status !== 'REJECTED' ? (l.hours || 0) : 0);
+    }, 0) * 100) / 100;
   }
-  weekTotal = computed(() => this.days().reduce((s, d) => s + this.dayTotal(d), 0));
+  weekTotal = computed(() => Math.round(this.days().reduce((s, d) => s + this.dayTotal(d), 0) * 100) / 100);
 }

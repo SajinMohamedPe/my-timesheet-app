@@ -107,15 +107,15 @@ export function buildSeed(): MockData {
   const leaveRequests: LeaveRequest[] = [
     {
       id: 'l-1', userId: 'u-bob', domainId: 'd-aim', type: 'ANNUAL', date: '2026-09-22',
-      duration: 'FULL', notes: 'Family day', status: 'PENDING', requestedAt: '2026-09-18T09:00:00Z',
+      hours: 7.25, notes: 'Family day', status: 'PENDING', requestedAt: '2026-09-18T09:00:00Z',
     },
     {
       id: 'l-2', userId: 'u-carol', domainId: 'd-fish', type: 'SICK', date: '2026-09-19',
-      duration: 'HALF', status: 'PENDING', requestedAt: '2026-09-19T08:30:00Z',
+      hours: 3.63, status: 'PENDING', requestedAt: '2026-09-19T08:30:00Z',
     },
     {
       id: 'l-3', userId: 'u-alice', domainId: 'd-aim', type: 'TRAINING', date: '2026-09-12',
-      duration: 'FULL', status: 'APPROVED', requestedAt: '2026-09-08T10:00:00Z',
+      hours: 7.25, status: 'APPROVED', requestedAt: '2026-09-08T10:00:00Z',
       decidedBy: 'u-admin', decidedAt: '2026-09-09T11:00:00Z',
     },
   ];

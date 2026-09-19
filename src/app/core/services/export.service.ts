@@ -87,8 +87,8 @@ export class ExportService {
       if (rep.leaves.length) {
         aoa.push([]);
         aoa.push(['Leave']);
-        aoa.push(['Date', 'Type', 'Duration']);
-        for (const l of rep.leaves) aoa.push([l.date, l.type, l.duration]);
+        aoa.push(['Date', 'Type', 'Hours']);
+        for (const l of rep.leaves) aoa.push([l.date, l.type, l.hours.toFixed(2)]);
       }
       const ws = XLSX.utils.aoa_to_sheet(aoa);
       ws['!cols'] = [{ wch: 14 }, { wch: 12 }, { wch: 24 }, { wch: 8 }, { wch: 30 }];
@@ -116,8 +116,8 @@ export class ExportService {
       });
       if (rep.leaves.length) {
         autoTable(doc, {
-          head: [['Leave Date', 'Type', 'Duration']],
-          body: rep.leaves.map((l) => [l.date, l.type, l.duration]),
+          head: [['Leave Date', 'Type', 'Hours']],
+          body: rep.leaves.map((l) => [l.date, l.type, l.hours.toFixed(2)]),
           styles: { fontSize: 9 },
           headStyles: { fillColor: [110, 110, 110] },
         });

@@ -31,7 +31,7 @@ const TYPE_LABEL: Record<string, string> = {
             <td>{{ nameOf(l.userId) }}</td>
             <td>{{ label(l.type) }}</td>
             <td>{{ l.date }}</td>
-            <td>{{ l.duration === 'HALF' ? 'Half day (4h)' : 'Full day (8h)' }}</td>
+            <td>{{ l.hours.toFixed(2) }}h</td>
             <td class="muted">{{ l.notes || '—' }}</td>
             <td><span class="chip" [class.amber]="l.status==='PENDING'" [class.green]="l.status==='APPROVED'" [class.red]="l.status==='REJECTED'">{{ l.status }}</span></td>
             <td>

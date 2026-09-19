@@ -35,24 +35,42 @@ thead .total { text-align: center; width: 80px; }
 .ghead .muted { font-weight: 400; }
 
 td.rowhead { padding: 8px 20px; }
-td.rowhead .code { font-weight: 600; font-size: 13px; }
-td.rowhead .desc { font-size: 13px; color: var(--dtt-muted); }
+td.rowhead .code { font-weight: 700; font-size: 13px; }
+td.rowhead .desc { font-size: 13px; color: var(--dtt-ink); font-weight: 600; }
+.rowhead-inner { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.rm { border: none; background: transparent; cursor: pointer; opacity: 0; transition: opacity .12s;
+  color: #c2c6ca; display: flex; align-items: center; padding: 2px; border-radius: 6px; }
+tr:hover .rm { opacity: 1; }
+.rm:hover { color: #b4322f; background: #fdeceb; }
+.rm mat-icon { font-size: 18px; width: 18px; height: 18px; }
 
 td.cell { padding: 2px; text-align: center; }
 td.cell input {
-  width: 62px; padding: 8px 4px; text-align: center; border: 1px solid transparent;
-  border-radius: 6px; font-size: 14px; background: transparent;
+  width: 64px; padding: 8px 4px; text-align: center; border: 1px solid transparent;
+  border-radius: 6px; font-size: 14px; font-weight: 700; background: transparent; color: var(--dtt-ink);
 }
 td.cell input:hover { border-color: var(--dtt-line); }
 td.cell input:focus { outline: none; border-color: var(--dtt-green); background: #fff; }
 
-td.cell.leave .lchip {
-  display: inline-block; min-width: 30px; padding: 5px 8px; border-radius: 6px; font-weight: 600; font-size: 13px;
-  background: #eceef0; color: #555;
-}
-td.cell.leave.pending .lchip { background: #fdf1d6; color: #9a6b00; }
-td.cell.leave.approved .lchip { background: #e5f2d3; color: var(--dtt-green-dark); }
-td.cell.leave.rejected .lchip { background: #fde3e3; color: #b23; text-decoration: line-through; }
+/* Leave cells: bold, vibrant, status-tinted background */
+td.cell.leave input { font-weight: 700; }
+.leave-input.annual   { color: #e53935; }
+.leave-input.sick     { color: #ab30c4; }
+.leave-input.training { color: #b8860b; }
+.leave-input.internal { color: #1976d2; }
+.leave-input.bank     { color: #546e7a; }
+td.cell.leave.pending  { background: #fff7e6; box-shadow: inset 3px 0 0 #f5a623; }
+td.cell.leave.approved { background: #eef7dd; box-shadow: inset 3px 0 0 #86bc25; }
+td.cell.leave.rejected { background: #fdeceb; box-shadow: inset 3px 0 0 #e53935; }
+td.cell.leave.rejected input { text-decoration: line-through; }
+
+/* Bold, vibrant leave row labels */
+.leave-label { font-weight: 700 !important; }
+.leave-label.annual   { color: #e53935 !important; }
+.leave-label.sick     { color: #ab30c4 !important; }
+.leave-label.training { color: #b8860b !important; }
+.leave-label.internal { color: #1976d2 !important; }
+.leave-label.bank     { color: #546e7a !important; }
 
 td.total { text-align: center; font-weight: 600; color: var(--dtt-ink); }
 .addrow td { padding: 6px 20px; border-bottom: 1px solid var(--dtt-line); }

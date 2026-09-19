@@ -7,6 +7,12 @@ import { PASSWORDS } from './seed';
 
 export interface MockResult { status: number; body: unknown; }
 
+const MAX_LEAVE = 7.25;
+const clampLeave = (h: unknown): number => {
+  const n = Number(h) || 0;
+  return Math.max(0, Math.min(MAX_LEAVE, Math.round(n * 100) / 100));
+};
+
 const ok = (body: unknown = null): MockResult => ({ status: 200, body });
 const created = (body: unknown): MockResult => ({ status: 201, body });
 const err = (status: number, message: string): MockResult => ({ status, body: { message } });
@@ -340,12 +346,40 @@ function leaveRoute(db: MockDb, me: User, req: ParsedReq): MockResult {
   if (method === 'POST' && !p[2]) {
     const l: LeaveRequest = {
       id: uid('l'), userId: body.userId ?? me.id, domainId: body.domainId,
-      type: body.type, date: body.date, duration: body.duration ?? 'FULL',
+      type: body.type, date: body.date, hours: clampLeave(body.hours),
       notes: body.notes, status: 'PENDING', requestedAt: new Date().toISOString(),
     };
     leave.push(l);
     db.save();
     return created(l);
+  }
+  // Editing a leave's hours resets it to PENDING (needs re-approval).
+  if (method === 'PUT' && p[2]) {
+    const l = leave.find((x) => x.id === p[2]);
+    if (!l) return err(404, 'Leave not found');
+    if (l.userId !== me.id && !isAdmin(me)) return err(403, 'Forbidden');
+    l.hours = clampLeave(body.hours ?? l.hours);
+    if (body.notes !== undefined) l.notes = body.notes;
+    l.status = 'PENDING';
+    l.decidedBy = undefined; l.decidedAt = undefined;
+    if (me.id !== l.userId) {
+      const who = db.get('users').find((u) => u.id === l.userId);
+      audit(db, me, 'UPDATE', 'LEAVE', `Changed ${l.type} leave to ${l.hours.toFixed(2)}h for ${who?.name ?? l.userId} (${l.date}) — re-submitted`, l.userId, l.domainId);
+    }
+    db.save();
+    return ok(l);
+  }
+  if (method === 'DELETE' && p[2]) {
+    const i = leave.findIndex((x) => x.id === p[2]);
+    if (i < 0) return err(404, 'Leave not found');
+    if (leave[i].userId !== me.id && !isAdmin(me)) return err(403, 'Forbidden');
+    const [removed] = leave.splice(i, 1);
+    if (me.id !== removed.userId) {
+      const who = db.get('users').find((u) => u.id === removed.userId);
+      audit(db, me, 'DELETE', 'LEAVE', `Removed ${removed.type} leave for ${who?.name ?? removed.userId} (${removed.date})`, removed.userId, removed.domainId);
+    }
+    db.save();
+    return ok({ deleted: true });
   }
   if (method === 'POST' && (p[3] === 'approve' || p[3] === 'reject')) {
     if (!isAdmin(me)) return err(403, 'Admin only');
@@ -487,7 +521,7 @@ function employeeReport(db: MockDb, me: User, query: URLSearchParams) {
     .sort((a, b) => a.date.localeCompare(b.date));
   const leaves = db.get('leaveRequests')
     .filter((l) => l.userId === userId && ids.includes(l.domainId) && l.date.startsWith(month) && l.status === 'APPROVED')
-    .map((l) => ({ date: l.date, type: l.type, duration: l.duration }));
+    .map((l) => ({ date: l.date, type: l.type, hours: l.hours }));
   const totalHours = entries.reduce((s, e) => s + e.hours, 0);
   return {
     name: u?.name ?? userId, month, monthLabel: monthLabel(month),

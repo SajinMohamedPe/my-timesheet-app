@@ -21,7 +21,7 @@ export interface UploadedRow {
 export interface EmployeeReport {
   name: string; month: string; monthLabel: string; totalHours: number; totalDays: number;
   entries: { date: string; wbsCode: string; project: string; hours: number; notes: string }[];
-  leaves: { date: string; type: string; duration: string }[];
+  leaves: { date: string; type: string; hours: number }[];
 }
 
 const base = environment.apiBase;
@@ -72,6 +72,8 @@ export class ApiService {
     return this.http.get<LeaveRequest[]>(`${base}/leave`, { params: params(q) });
   }
   createLeave(l: Partial<LeaveRequest>) { return this.http.post<LeaveRequest>(`${base}/leave`, l); }
+  updateLeave(id: string, l: Partial<LeaveRequest>) { return this.http.put<LeaveRequest>(`${base}/leave/${id}`, l); }
+  deleteLeave(id: string) { return this.http.delete(`${base}/leave/${id}`); }
   approveLeave(id: string) { return this.http.post<LeaveRequest>(`${base}/leave/${id}/approve`, {}); }
   rejectLeave(id: string) { return this.http.post<LeaveRequest>(`${base}/leave/${id}/reject`, {}); }
 

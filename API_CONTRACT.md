@@ -25,7 +25,8 @@ makes the app live with **no frontend changes**.
 - **User type**
   - `CONTRACTOR` — logs time in-app.
   - `STAFF` — does not log in-app; their hours arrive via **uploaded** external timesheet (xlsx). The Project Summary **merges** in-app + uploaded, with **in-app winning** on conflict.
-- **Approval**: time entries **save freely** (no approval). **Leave always requires approval** by a domain admin (statuses `PENDING`/`APPROVED`/`REJECTED`).
+- **Approval**: time entries **save freely** (no approval). **Leave always requires approval** by a domain admin (statuses `PENDING`/`APPROVED`/`REJECTED`). Leave is entered as **hours per day, max 7.25** (the standard Deloitte working day). **Editing a leave's hours resets it to `PENDING`** (re-approval). Leave rows can be deleted.
+- **Hours convention**: the standard working day is **7.25h** (weekly target 36.25h) and caps leave per day. Note the Project Summary still expresses **days = hours / 8** per the finance spec — the 7.25 cap applies to leave entry, not to the report's day divisor. All hour values display to **2 decimals** (e.g. `8.00`).
 
 ---
 
@@ -114,7 +115,7 @@ leave_request(
   domain_id     uuid fk -> domain(id),
   type          text not null,            -- ANNUAL|SICK|TRAINING|INTERNAL|BANK_HOLIDAY
   leave_date    date not null,
-  duration      text not null,            -- FULL (8h) | HALF (4h)
+  hours         numeric(4,2) not null check (hours > 0 and hours <= 7.25),
   notes         text,
   status        text not null default 'PENDING',
   requested_at  timestamptz not null,
@@ -212,8 +213,10 @@ JWT claims: `sub`=userId, `role`, `domainIds` (array), plus standard `exp`/`iat`
 ### 4.6 Leave
 
 - **GET `/api/leave?domainId=&status=&userId=`** → `LeaveRequest[]` (employees: own only).
-  `LeaveRequest = { id, userId, domainId, type, date, duration, notes?, status, requestedAt, decidedBy?, decidedAt? }`.
-- **POST `/api/leave`** — `{ "userId?","domainId","type","date","duration","notes?" }` → `201` with `status=PENDING`.
+  `LeaveRequest = { id, userId, domainId, type, date, hours, notes?, status, requestedAt, decidedBy?, decidedAt? }`.
+- **POST `/api/leave`** — `{ "userId?","domainId","type","date","hours","notes?" }` → `201` with `status=PENDING`. Clamp `hours` to `(0, 7.25]`.
+- **PUT `/api/leave/{id}`** — `{ "hours?","notes?" }`. Owner or in-scope admin. **Changing hours resets `status` to `PENDING`** and clears `decidedBy`/`decidedAt` (re-approval). Admin edits to others are audited.
+- **DELETE `/api/leave/{id}`** → `{ "deleted": true }`. Owner or in-scope admin (admin deletes audited).
 - **POST `/api/leave/{id}/approve`** *(admin, own domain)* → `LeaveRequest` (`APPROVED`), audited.
 - **POST `/api/leave/{id}/reject`** *(admin, own domain)* → `LeaveRequest` (`REJECTED`), audited.
 
@@ -249,7 +252,7 @@ JWT claims: `sub`=userId, `role`, `domainIds` (array), plus standard `exp`/`iat`
   {
     "name","month","monthLabel","totalHours","totalDays",
     "entries":[ { "date","wbsCode","project","hours","notes" } ],
-    "leaves":[ { "date","type","duration" } ]   // approved only
+    "leaves":[ { "date","type","hours" } ]   // approved only
   }
   ```
 

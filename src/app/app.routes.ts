@@ -19,6 +19,7 @@ export const routes: Routes = [
       {
         path: 'coming-soon/:title',
         loadComponent: () => import('./features/coming-soon/coming-soon.component').then((m) => m.ComingSoonComponent),
+        canActivate: [adminGuard],
       },
     ],
   },

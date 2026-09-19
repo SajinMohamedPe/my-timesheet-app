@@ -17,15 +17,17 @@
 .sw { width: 15px; height: 15px; border-radius: 3px; display: inline-block; }
 .busy { margin-top: 10px; color: var(--dtt-green-dark); font-size: 13px; }
 
-/* colour swatches / cells */
-.work { background: #86bc25; }
-.annual { background: #e0533d; }
-.sick { background: #c455c9; }
-.training { background: #cdd23a; }
-.internal { background: #4a86d6; }
-.bank { background: #8891a6; }
-.pending { background: repeating-linear-gradient(45deg, #d7dbe0, #d7dbe0 4px, #eef0f2 4px, #eef0f2 8px); }
+/* colour swatches / cells — vibrant */
+.work { background: #7cb518; }
+.annual { background: #e53935; }
+.sick { background: #ab30c4; }
+.training { background: #f4b400; }
+.internal { background: #1976d2; }
+.bank { background: #607d8b; }
+.pending { background: repeating-linear-gradient(45deg, #f5a623, #f5a623 5px, #ffe4b5 5px, #ffe4b5 10px); }
 .empty { background: transparent; }
+table.plan td.cell.training { color: #4a3600; }
+table.plan td.cell { font-weight: 700; }
 
 .tabs { display: flex; gap: 6px; margin: 6px 0 14px; }
 .tabs button { border: 1px solid var(--dtt-line); background: #fff; border-radius: 8px; padding: 8px 16px; cursor: pointer; font-weight: 600; font-size: 13px; color: var(--dtt-muted); }

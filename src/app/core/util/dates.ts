@@ -1,7 +1,11 @@
 // Week runs Sunday -> Saturday (matches the SAP reference & calendar screenshots).
 
 export function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  // Local Y-M-D (NOT toISOString, which converts to UTC and can shift the day).
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 /** The Sunday that starts the week containing `date`. */

@@ -65,16 +65,18 @@ export type LeaveType =
   | 'BANK_HOLIDAY';
 
 export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
-export type LeaveDuration = 'FULL' | 'HALF'; // FULL = 8h, HALF = 4h
 
-/** All leave requires domain-admin approval. */
+/** Standard Deloitte working day in hours; also the max leave hours per day. */
+export const MAX_LEAVE_HOURS_PER_DAY = 7.25;
+
+/** All leave requires domain-admin approval. Editing hours re-triggers approval. */
 export interface LeaveRequest {
   id: string;
   userId: string;
   domainId: string;
   type: LeaveType;
   date: string;            // ISO date
-  duration: LeaveDuration;
+  hours: number;           // 0 < hours <= 7.25
   notes?: string;
   status: LeaveStatus;
   requestedAt: string;

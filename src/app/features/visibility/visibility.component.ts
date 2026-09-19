@@ -75,7 +75,7 @@ export class VisibilityComponent implements OnInit {
   isWeekend(d: Date): boolean { const g = d.getDay(); return g === 0 || g === 6; }
 
   cell(userId: string, day: Date): Cell {
-    const iso = day.toISOString().slice(0, 10);
+    const iso = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
     const p = this.plan();
     if (!p) return { label: '', kind: 'empty' };
     const row = p.rows.find((r) => r.userId === userId);
@@ -83,7 +83,8 @@ export class VisibilityComponent implements OnInit {
     const leave = row.leaves.find((l) => l.date === iso && l.status !== 'REJECTED');
     if (leave) {
       return {
-        label: leave.duration === 'HALF' ? '½' : '',
+        // Show a marker for part-days (< full 7.25h); full days stay blank.
+        label: leave.hours < 7.25 ? leave.hours.toFixed(2) : '',
         kind: leave.status === 'PENDING' ? 'pending' : 'leave',
         type: leave.type,
       };

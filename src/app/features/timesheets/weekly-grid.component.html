@@ -51,17 +51,22 @@
           @for (row of g.rows; track row.wbs.id) {
             <tr>
               <td class="rowhead">
-                <div class="code">{{ row.wbs.code }}</div>
-                <div class="desc">{{ row.wbs.currentName }}</div>
+                <div class="rowhead-inner">
+                  <div>
+                    <div class="code">{{ row.wbs.code }}</div>
+                    <div class="desc">{{ row.wbs.currentName }}</div>
+                  </div>
+                  <button class="rm" title="Remove charge code" (click)="removeWbsRow(row)"><mat-icon>delete_outline</mat-icon></button>
+                </div>
               </td>
               @for (d of days(); track $index) {
                 <td class="cell" [class.weekend]="isWeekend(d)">
-                  <input type="number" min="0" max="24" step="0.5"
-                    [value]="hoursFor(row.wbs.id, d) ?? ''"
+                  <input type="text" inputmode="decimal"
+                    [value]="fmtCell(hoursFor(row.wbs.id, d))"
                     (change)="setHours(row, d, $any($event.target).value)" />
                 </td>
               }
-              <td class="total">{{ rowTotal(row.wbs.id) || '' }}</td>
+              <td class="total">{{ fmtTotal(rowTotal(row.wbs.id)) }}</td>
             </tr>
           }
           <tr class="addrow">
@@ -87,18 +92,21 @@
       @if (!isCollapsed('absence')) {
         @for (lt of visibleLeaveTypes(); track lt.type) {
           <tr>
-            <td class="rowhead"><div class="desc">{{ lt.label }}</div></td>
+            <td class="rowhead">
+              <div class="rowhead-inner">
+                <div class="desc leave-label {{ leaveKey(lt.type) }}">{{ lt.label }}</div>
+                <button class="rm" title="Remove leave" (click)="removeLeaveRow(lt.type)"><mat-icon>delete_outline</mat-icon></button>
+              </div>
+            </td>
             @for (d of days(); track $index) {
-              <td class="cell leave {{ leaveStatusClass(lt.type, d) }}" [class.weekend]="isWeekend(d)">
-                @if (leaveFor(lt.type, d)) {
-                  <span class="lchip" [title]="leaveFor(lt.type, d)?.status">{{ leaveDisplay(lt.type, d) }}</span>
-                } @else {
-                  <input type="number" min="0" max="8" step="4" placeholder=""
-                    (change)="setLeave(lt.type, d, $any($event.target).value)" />
-                }
+              <td class="cell leave {{ leaveStatusClass(lt.type, d) }}" [class.weekend]="isWeekend(d)"
+                  [title]="leaveStatusLabel(lt.type, d)">
+                <input type="text" inputmode="decimal" class="leave-input {{ leaveKey(lt.type) }}"
+                  [value]="fmtCell(leaveHours(lt.type, d))"
+                  (change)="setLeave(lt.type, d, $any($event.target).value)" />
               </td>
             }
-            <td class="total">{{ leaveRowTotal(lt.type) || '' }}</td>
+            <td class="total">{{ fmtTotal(leaveRowTotal(lt.type)) }}</td>
           </tr>
         }
         <tr class="addrow">
@@ -117,9 +125,9 @@
       <tr>
         <td class="rowhead">Daily total</td>
         @for (d of days(); track $index) {
-          <td class="total" [class.weekend]="isWeekend(d)">{{ dayTotal(d) || '' }}</td>
+          <td class="total" [class.weekend]="isWeekend(d)">{{ fmtTotal(dayTotal(d)) }}</td>
         }
-        <td class="grand">{{ weekTotal() }}</td>
+        <td class="grand">{{ fmtTotal(weekTotal()) }}</td>
       </tr>
     </tfoot>
   </table>

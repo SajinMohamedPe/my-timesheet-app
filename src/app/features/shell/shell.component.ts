@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { AuthService } from '../../core/services/auth.service';
 import { DomainContextService } from '../../core/services/domain-context.service';
+import { ApiService } from '../../core/services/api.service';
 
 interface Feature { label: string; icon: string; desc: string; link: string; admin?: boolean; }
 interface NavItem { label: string; icon: string; link: string; admin?: boolean; }
@@ -72,6 +73,7 @@ interface NavGroup { heading: string; items: NavParent[]; }
           <div class="role">{{ roleLabel() }}</div>
         </div>
       </div>
+      <button class="signout" (click)="resetDemo()" title="Reset demo data"><mat-icon>restart_alt</mat-icon></button>
       <button class="signout" (click)="signOut()"><mat-icon>logout</mat-icon><span>Sign Out</span></button>
     </header>
 
@@ -116,6 +118,7 @@ export class ShellComponent implements OnInit {
   ctx = inject(DomainContextService);
   private router = inject(Router);
   private host = inject(ElementRef);
+  private api = inject(ApiService);
 
   collapsed = signal(false);
   query = signal('');
@@ -138,10 +141,10 @@ export class ShellComponent implements OnInit {
     { label: 'Leave Approvals', icon: 'fact_check', desc: 'Approve or reject pending leave', link: '/leave-approvals', admin: true },
     { label: 'Timesheet Audit', icon: 'history', desc: 'History of admin edits', link: '/audit', admin: true },
     { label: 'Admin Panel', icon: 'settings', desc: 'Domains, WBS codes and user roles', link: '/admin', admin: true },
-    { label: 'Billing', icon: 'credit_card', desc: 'Invoicing & billing (coming soon)', link: '/coming-soon/Billing' },
-    { label: 'Forecasting', icon: 'insights', desc: 'Capacity forecasting (coming soon)', link: '/coming-soon/Forecasting' },
-    { label: 'Leakage Report', icon: 'travel_explore', desc: 'Revenue leakage (coming soon)', link: '/coming-soon/Leakage Report' },
-    { label: 'Budget Management', icon: 'savings', desc: 'Project budgets (coming soon)', link: '/coming-soon/Budget Management' },
+    { label: 'Billing', icon: 'credit_card', desc: 'Invoicing & billing (coming soon)', link: '/coming-soon/Billing', admin: true },
+    { label: 'Forecasting', icon: 'insights', desc: 'Capacity forecasting (coming soon)', link: '/coming-soon/Forecasting', admin: true },
+    { label: 'Leakage Report', icon: 'travel_explore', desc: 'Revenue leakage (coming soon)', link: '/coming-soon/Leakage Report', admin: true },
+    { label: 'Budget Management', icon: 'savings', desc: 'Project budgets (coming soon)', link: '/coming-soon/Budget Management', admin: true },
   ];
 
   private allowed = computed(() => this.features.filter((f) => !f.admin || this.auth.isAdmin()));
@@ -179,20 +182,23 @@ export class ShellComponent implements OnInit {
     }
     const core: NavParent[] = [
       { label: 'Time Tracking', icon: 'schedule', expandable: true, children: tt },
-      { label: 'Billing', icon: 'credit_card', link: '/coming-soon/Billing' },
-      { label: 'Forecasting', icon: 'insights', link: '/coming-soon/Forecasting' },
-      { label: 'Leakage Report', icon: 'travel_explore', link: '/coming-soon/Leakage Report' },
     ];
+    // Billing / Forecasting / Leakage are admin & super-admin only.
+    if (admin) {
+      core.push({ label: 'Billing', icon: 'credit_card', link: '/coming-soon/Billing' });
+      core.push({ label: 'Forecasting', icon: 'insights', link: '/coming-soon/Forecasting' });
+      core.push({ label: 'Leakage Report', icon: 'travel_explore', link: '/coming-soon/Leakage Report' });
+    }
     const groups: NavGroup[] = [
       { heading: '_', items: [{ label: 'Home', icon: 'grid_view', link: '/home' }] },
       { heading: 'CORE', items: core },
-      { heading: 'PROJECTS', items: [
+    ];
+    if (admin) {
+      groups.push({ heading: 'PROJECTS', items: [
         { label: 'Project Management', icon: 'inventory_2', expandable: true, children: [
           { label: 'Budget Management', icon: 'savings', link: '/coming-soon/Budget Management' },
         ] },
-      ] },
-    ];
-    if (admin) {
+      ] });
       groups.push({ heading: 'ADMIN', items: [{ label: 'Admin Panel', icon: 'settings', link: '/admin' }] });
     }
     return groups;
@@ -206,4 +212,8 @@ export class ShellComponent implements OnInit {
     return (this.auth.user()?.name ?? '?').split(' ').map((s) => s[0]).slice(0, 2).join('');
   }
   signOut(): void { this.auth.logout(); this.ctx.clear(); this.router.navigateByUrl('/login'); }
+  resetDemo(): void {
+    if (!confirm('Reset all demo data back to the seed? Anything you entered will be lost.')) return;
+    this.api.resetDemo().subscribe(() => location.reload());
+  }
 }
