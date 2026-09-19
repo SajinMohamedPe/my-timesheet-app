@@ -24,9 +24,15 @@ thead .day .dl { font-size: 11px; }
 thead .total { text-align: center; width: 80px; }
 .weekend { background: #f4f6f8; }
 
-.group td { background: #f0f4e8; padding: 8px 20px; font-weight: 600; color: var(--dtt-green-dark); }
-.group.absence td { background: #eef0f2; color: #555; }
-.group mat-icon { vertical-align: middle; font-size: 17px; width: 17px; height: 17px; margin-right: 6px; }
+.group td { background: #f0f4e8; padding: 0; }
+.group.absence td { background: #eef0f2; }
+.ghead { display: flex; align-items: center; gap: 6px; width: 100%; border: none; background: transparent;
+  cursor: pointer; padding: 9px 16px; font-weight: 600; font-size: 14px; color: var(--dtt-green-dark); text-align: left; }
+.group.absence .ghead { color: #555; }
+.ghead:hover { filter: brightness(.97); }
+.ghead .caret { font-size: 20px; width: 20px; height: 20px; }
+.ghead mat-icon { font-size: 18px; width: 18px; height: 18px; }
+.ghead .muted { font-weight: 400; }
 
 td.rowhead { padding: 8px 20px; }
 td.rowhead .code { font-weight: 600; font-size: 13px; }

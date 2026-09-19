@@ -37,61 +37,78 @@
     </thead>
 
     <tbody>
-      <!-- Time groups by domain -->
+      <!-- Time groups by domain (collapsible) -->
       @for (g of groups(); track g.domain.id) {
         <tr class="group"><td [attr.colspan]="9">
-          <mat-icon>workspaces</mat-icon> {{ g.domain.name }}
-          <span class="muted">— {{ g.domain.description }}</span>
+          <button class="ghead" (click)="toggleGroup(g.domain.id)">
+            <mat-icon class="caret">{{ isCollapsed(g.domain.id) ? 'chevron_right' : 'expand_more' }}</mat-icon>
+            <mat-icon>workspaces</mat-icon> {{ g.domain.name }}
+            <span class="muted">— {{ g.domain.description }}</span>
+          </button>
         </td></tr>
 
-        @for (row of g.rows; track row.wbs.id) {
-          <tr>
-            <td class="rowhead">
-              <div class="code">{{ row.wbs.code }}</div>
-              <div class="desc">{{ row.wbs.currentName }}</div>
-            </td>
-            @for (d of days(); track $index) {
-              <td class="cell" [class.weekend]="isWeekend(d)">
-                <input type="number" min="0" max="24" step="0.5"
-                  [value]="hoursFor(row.wbs.id, d) ?? ''"
-                  (change)="setHours(row, d, $any($event.target).value)" />
+        @if (!isCollapsed(g.domain.id)) {
+          @for (row of g.rows; track row.wbs.id) {
+            <tr>
+              <td class="rowhead">
+                <div class="code">{{ row.wbs.code }}</div>
+                <div class="desc">{{ row.wbs.currentName }}</div>
               </td>
-            }
-            <td class="total">{{ rowTotal(row.wbs.id) || '' }}</td>
+              @for (d of days(); track $index) {
+                <td class="cell" [class.weekend]="isWeekend(d)">
+                  <input type="number" min="0" max="24" step="0.5"
+                    [value]="hoursFor(row.wbs.id, d) ?? ''"
+                    (change)="setHours(row, d, $any($event.target).value)" />
+                </td>
+              }
+              <td class="total">{{ rowTotal(row.wbs.id) || '' }}</td>
+            </tr>
+          }
+          <tr class="addrow">
+            <td class="rowhead">
+              @if (wbsOptions(g.domain.id).length) {
+                <dtt-search-select triggerLabel="Add charge code" placeholder="Search WBS code or project…"
+                  [options]="wbsOptions(g.domain.id)" (pick)="addRow(g.domain.id, $event)" />
+              } @else { <span class="muted small">All charge codes added</span> }
+            </td>
+            <td [attr.colspan]="8"></td>
           </tr>
         }
-
-        <tr class="addrow">
-          <td class="rowhead">
-            @if (availableToAdd(g.domain.id).length) {
-              <button class="add" [matMenuTriggerFor]="menu"><mat-icon>add</mat-icon> Add charge code</button>
-              <mat-menu #menu="matMenu">
-                @for (w of availableToAdd(g.domain.id); track w.id) {
-                  <button mat-menu-item (click)="addRow(g.domain.id, w.id)">{{ w.code }} — {{ w.currentName }}</button>
-                }
-              </mat-menu>
-            } @else { <span class="muted small">All charge codes added</span> }
-          </td>
-          <td [attr.colspan]="8"></td>
-        </tr>
       }
 
-      <!-- Absence group -->
-      <tr class="group absence"><td [attr.colspan]="9"><mat-icon>beach_access</mat-icon> Absence / Leave <span class="muted">— requires approval</span></td></tr>
-      @for (lt of leaveTypes; track lt.type) {
-        <tr>
-          <td class="rowhead"><div class="desc">{{ lt.label }}</div></td>
-          @for (d of days(); track $index) {
-            <td class="cell leave {{ leaveStatusClass(lt.type, d) }}" [class.weekend]="isWeekend(d)">
-              @if (leaveFor(lt.type, d)) {
-                <span class="lchip" [title]="leaveFor(lt.type, d)?.status">{{ leaveDisplay(lt.type, d) }}</span>
-              } @else {
-                <input type="number" min="0" max="8" step="4" placeholder=""
-                  (change)="setLeave(lt.type, d, $any($event.target).value)" />
-              }
-            </td>
-          }
-          <td class="total">{{ leaveRowTotal(lt.type) || '' }}</td>
+      <!-- Absence group (collapsible; only added/existing leave types) -->
+      <tr class="group absence"><td [attr.colspan]="9">
+        <button class="ghead" (click)="toggleGroup('absence')">
+          <mat-icon class="caret">{{ isCollapsed('absence') ? 'chevron_right' : 'expand_more' }}</mat-icon>
+          <mat-icon>beach_access</mat-icon> Absence / Leave <span class="muted">— requires approval</span>
+        </button>
+      </td></tr>
+
+      @if (!isCollapsed('absence')) {
+        @for (lt of visibleLeaveTypes(); track lt.type) {
+          <tr>
+            <td class="rowhead"><div class="desc">{{ lt.label }}</div></td>
+            @for (d of days(); track $index) {
+              <td class="cell leave {{ leaveStatusClass(lt.type, d) }}" [class.weekend]="isWeekend(d)">
+                @if (leaveFor(lt.type, d)) {
+                  <span class="lchip" [title]="leaveFor(lt.type, d)?.status">{{ leaveDisplay(lt.type, d) }}</span>
+                } @else {
+                  <input type="number" min="0" max="8" step="4" placeholder=""
+                    (change)="setLeave(lt.type, d, $any($event.target).value)" />
+                }
+              </td>
+            }
+            <td class="total">{{ leaveRowTotal(lt.type) || '' }}</td>
+          </tr>
+        }
+        <tr class="addrow">
+          <td class="rowhead">
+            @if (leaveOptions().length) {
+              <dtt-search-select triggerLabel="Add leave type" placeholder="Search leave type…"
+                [options]="leaveOptions()" (pick)="addLeaveRow($event)" />
+            } @else { <span class="muted small">All leave types added</span> }
+          </td>
+          <td [attr.colspan]="8"></td>
         </tr>
       }
     </tbody>

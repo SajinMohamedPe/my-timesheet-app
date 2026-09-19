@@ -7,6 +7,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { DomainContextService } from '../../core/services/domain-context.service';
 import { ApiService, WbsCodeView } from '../../core/services/api.service';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { SearchSelectComponent, SelectOption } from '../../shared/search-select.component';
 import {
   Domain, LeaveDuration, LeaveRequest, LeaveType, TimeEntry, User,
 } from '../../core/models/models';
@@ -25,7 +26,7 @@ const LEAVE_TYPES: { type: LeaveType; label: string }[] = [
 
 @Component({
   selector: 'dtt-weekly-grid',
-  imports: [FormsModule, MatIconModule, MatMenuModule, PageHeaderComponent],
+  imports: [FormsModule, MatIconModule, MatMenuModule, PageHeaderComponent, SearchSelectComponent],
   templateUrl: './weekly-grid.component.html',
   styleUrl: './weekly-grid.component.scss',
 })
@@ -47,6 +48,8 @@ export class WeeklyGridComponent implements OnInit {
   private allWbs = signal<WbsCodeView[]>([]);
   private domains = signal<Domain[]>([]);
   private extraRows = signal<Record<string, string[]>>({}); // domainId -> wbsIds added manually
+  private extraLeave = signal<Set<LeaveType>>(new Set()); // leave rows added via picker
+  collapsedGroups = signal<Set<string>>(new Set()); // group keys that are collapsed
   entries = signal<TimeEntry[]>([]);
   leaves = signal<LeaveRequest[]>([]);
   saving = signal(false);
@@ -80,7 +83,9 @@ export class WeeklyGridComponent implements OnInit {
     });
   }
 
-  changeUser(id: string): void { this.selectedUserId.set(id); this.extraRows.set({}); this.reload(); }
+  changeUser(id: string): void {
+    this.selectedUserId.set(id); this.extraRows.set({}); this.extraLeave.set(new Set()); this.reload();
+  }
   prevWeek(): void { this.weekAnchor.set(addDays(this.weekAnchor(), -7)); this.reload(); }
   nextWeek(): void { this.weekAnchor.set(addDays(this.weekAnchor(), 7)); this.reload(); }
   isWeekend = isWeekend;
@@ -105,10 +110,38 @@ export class WeeklyGridComponent implements OnInit {
     const shown = new Set(this.groups().find((g) => g.domain.id === domainId)?.rows.map((r) => r.wbs.id));
     return this.allWbs().filter((w) => w.domainId === domainId && !shown.has(w.id));
   }
+  /** Options for the "Add charge code" searchable dropdown. */
+  wbsOptions(domainId: string): SelectOption[] {
+    return this.availableToAdd(domainId).map((w) => ({ value: w.id, label: w.code, sub: w.currentName }));
+  }
   addRow(domainId: string, wbsId: string): void {
     const cur = { ...this.extraRows() };
     cur[domainId] = [...(cur[domainId] ?? []), wbsId];
     this.extraRows.set(cur);
+  }
+
+  // ---- Collapsible groups ----
+  toggleGroup(key: string): void {
+    const s = new Set(this.collapsedGroups());
+    s.has(key) ? s.delete(key) : s.add(key);
+    this.collapsedGroups.set(s);
+  }
+  isCollapsed(key: string): boolean { return this.collapsedGroups().has(key); }
+
+  // ---- Leave rows (only show added / existing types) ----
+  visibleLeaveTypes = computed(() => {
+    const withData = new Set(this.leaves().map((l) => l.type));
+    this.extraLeave().forEach((t) => withData.add(t));
+    return this.leaveTypes.filter((lt) => withData.has(lt.type));
+  });
+  leaveOptions = computed<SelectOption[]>(() => {
+    const shown = new Set(this.visibleLeaveTypes().map((lt) => lt.type));
+    return this.leaveTypes.filter((lt) => !shown.has(lt.type)).map((lt) => ({ value: lt.type, label: lt.label }));
+  });
+  addLeaveRow(type: string): void {
+    const s = new Set(this.extraLeave());
+    s.add(type as LeaveType);
+    this.extraLeave.set(s);
   }
 
   // ---- Time cells ----
