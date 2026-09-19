@@ -1,27 +1,28 @@
 <dtt-page-header icon="grid_on" title="Time Tracking" crumb="Time Tracking · Weekly Timesheet" />
 
-<div class="toolbar card">
-  @if (auth.isAdmin()) {
-    <div class="field">
-      <label>Timesheet for</label>
-      <select [ngModel]="selectedUserId()" (ngModelChange)="changeUser($event)">
-        @for (u of users(); track u.id) { <option [value]="u.id">{{ u.name }}</option> }
-      </select>
+<div class="card sheet">
+  <div class="toolbar">
+    @if (auth.isAdmin()) {
+      <div class="field">
+        <label>Timesheet for</label>
+        <select [ngModel]="selectedUserId()" (ngModelChange)="changeUser($event)">
+          @for (u of users(); track u.id) { <option [value]="u.id">{{ u.name }}</option> }
+        </select>
+      </div>
+    }
+    <span class="spacer"></span>
+    <div class="weeknav">
+      <button (click)="prevWeek()"><mat-icon>chevron_left</mat-icon></button>
+      <span class="range">{{ rangeLabel() }}</span>
+      <button (click)="nextWeek()"><mat-icon>chevron_right</mat-icon></button>
     </div>
-  }
-  <span class="spacer"></span>
-  <div class="weeknav">
-    <button (click)="prevWeek()"><mat-icon>chevron_left</mat-icon></button>
-    <span class="range">{{ rangeLabel() }}</span>
-    <button (click)="nextWeek()"><mat-icon>chevron_right</mat-icon></button>
+    <div class="wtotal">
+      <div class="v">{{ weekTotal() }}<span>h</span></div>
+      <div class="l">this week @if (saving()) { · saving… }</div>
+    </div>
   </div>
-  <div class="wtotal">
-    <div class="v">{{ weekTotal() }}<span>h</span></div>
-    <div class="l">this week @if (saving()) { · saving… }</div>
-  </div>
-</div>
 
-<div class="grid card">
+  <div class="grid">
   <table class="wk">
     <thead>
       <tr>
@@ -132,10 +133,11 @@
     </tfoot>
   </table>
 
-  <p class="hint muted small">
-    Enter hours per day against a charge code — saved automatically. Leave cells (Absence) create an
-    approval request routed to the domain admin. 8h = 1 day. Weekends are auto Bank Holiday.
-  </p>
+    <p class="hint muted small">
+      Enter hours per day against a charge code — saved automatically. Leave cells (Absence) create an
+      approval request routed to the domain admin. 8h = 1 day. Weekends are auto Bank Holiday.
+    </p>
+  </div>
 </div>
 
 <dtt-confirm-dialog
