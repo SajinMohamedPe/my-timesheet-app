@@ -98,6 +98,9 @@ tbody.grp td.c-day.leave.approved { box-shadow: inset 3px 0 0 #86bc25; }
 tbody.grp td.c-day.leave.rejected { box-shadow: inset 3px 0 0 #e53935; }
 tbody.grp td.c-day.leave.rejected input { text-decoration: line-through; }
 .leave-label { font-weight: 700; color: var(--dtt-ink); }
+/* Auto-filled Irish bank holiday: read-only, bank-styled */
+tbody.grp td.c-day.autobh { background: #eef1f4; box-shadow: inset 3px 0 0 #607d8b; }
+.autobh-val { display: inline-block; font-weight: 700; font-size: 14px; color: #4a5560; padding: 8px 2px; }
 
 td.c-wk.total { text-align: center; font-weight: 700; color: var(--dtt-ink); font-variant-numeric: tabular-nums; }
 .addrow td { padding: 8px 14px; }

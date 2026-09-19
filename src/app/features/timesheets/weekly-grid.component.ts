@@ -14,7 +14,9 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import {
   Domain, LeaveRequest, LeaveType, MAX_LEAVE_HOURS_PER_DAY, TimeEntry, User,
 } from '../../core/models/models';
-import { addDays, fmtRange, isoDate, isWeekend, weekDays, weekStart } from '../../core/util/dates';
+import {
+  addDays, BANK_HOLIDAY_HOURS, fmtRange, isIrishBankHoliday, isoDate, isWeekend, weekDays, weekStart,
+} from '../../core/util/dates';
 
 interface WbsRow { wbs: WbsCodeView; }
 interface DomainGroup { domain: Domain; rows: WbsRow[]; }
@@ -177,8 +179,17 @@ export class WeeklyGridComponent implements OnInit {
       this.leaves().filter((l) => weekIsos.has(l.date) && vis.has(l.domainId)).map((l) => l.type),
     );
     this.extraLeave().forEach((t) => withData.add(t));
+    // Irish public holidays are auto-marked, so always show the Bank Holiday row
+    // when the visible week contains one.
+    if (this.days().some((d) => isIrishBankHoliday(d))) withData.add('BANK_HOLIDAY');
     return this.leaveTypes.filter((lt) => withData.has(lt.type));
   });
+
+  isIrishHoliday(day: Date): boolean { return isIrishBankHoliday(day); }
+  /** A Bank-Holiday cell that is auto-filled (Irish holiday, no explicit record). */
+  autoBankHoliday(day: Date): boolean {
+    return isIrishBankHoliday(day) && !this.leaveFor('BANK_HOLIDAY', day);
+  }
   leaveOptions = computed<SelectOption[]>(() => {
     const shown = new Set(this.visibleLeaveTypes().map((lt) => lt.type));
     return this.leaveTypes.filter((lt) => !shown.has(lt.type)).map((lt) => ({ value: lt.type, label: lt.label }));
@@ -239,7 +250,10 @@ export class WeeklyGridComponent implements OnInit {
     return this.leaves().find((l) => l.type === type && l.date === d && vis.has(l.domainId));
   }
   leaveHours(type: LeaveType, day: Date): number | null {
-    return this.leaveFor(type, day)?.hours ?? null;
+    const l = this.leaveFor(type, day);
+    if (l) return l.hours;
+    if (type === 'BANK_HOLIDAY' && isIrishBankHoliday(day)) return BANK_HOLIDAY_HOURS; // auto
+    return null;
   }
   leaveStatusClass(type: LeaveType, day: Date): string {
     const l = this.leaveFor(type, day);
@@ -259,6 +273,7 @@ export class WeeklyGridComponent implements OnInit {
       return;
     }
     num = Math.min(this.maxLeave, Math.round(num * 100) / 100); // cap at 7.25
+    if (type === 'BANK_HOLIDAY') num = BANK_HOLIDAY_HOURS;      // bank holiday is always a full 7.25
     const label = this.leaveTypes.find((l) => l.type === type)?.label ?? 'leave';
     const dayLabel = day.toLocaleDateString('en-IE', { weekday: 'short', day: 'numeric', month: 'short' });
     // Entering/editing leave opens a review modal before submitting for approval.
@@ -344,8 +359,9 @@ export class WeeklyGridComponent implements OnInit {
     const d = isoDate(day);
     const vis = this.visibleDomainIdSet();
     const t = this.entries().filter((e) => e.date === d && vis.has(e.domainId)).reduce((s, e) => s + e.hours, 0);
-    const lv = this.leaves().filter((l) => l.date === d && l.status !== 'REJECTED' && vis.has(l.domainId))
+    let lv = this.leaves().filter((l) => l.date === d && l.status !== 'REJECTED' && vis.has(l.domainId))
       .reduce((s, l) => s + (l.hours || 0), 0);
+    if (this.autoBankHoliday(day)) lv += BANK_HOLIDAY_HOURS; // auto Irish bank holiday
     return Math.round((t + lv) * 100) / 100;
   }
   rowTotal(wbsId: string): number {
@@ -354,7 +370,9 @@ export class WeeklyGridComponent implements OnInit {
   leaveRowTotal(type: LeaveType): number {
     return Math.round(this.days().reduce((s, d) => {
       const l = this.leaveFor(type, d);
-      return s + (l && l.status !== 'REJECTED' ? (l.hours || 0) : 0);
+      if (l) return s + (l.status !== 'REJECTED' ? (l.hours || 0) : 0);
+      if (type === 'BANK_HOLIDAY' && isIrishBankHoliday(d)) return s + BANK_HOLIDAY_HOURS; // auto
+      return s;
     }, 0) * 100) / 100;
   }
   weekTotal = computed(() => Math.round(this.days().reduce((s, d) => s + this.dayTotal(d), 0) * 100) / 100);

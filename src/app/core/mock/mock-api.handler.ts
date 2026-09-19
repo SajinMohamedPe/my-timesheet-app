@@ -346,7 +346,8 @@ function leaveRoute(db: MockDb, me: User, req: ParsedReq): MockResult {
   if (method === 'POST' && !p[2]) {
     const l: LeaveRequest = {
       id: uid('l'), userId: body.userId ?? me.id, domainId: body.domainId,
-      type: body.type, date: body.date, hours: clampLeave(body.hours),
+      type: body.type, date: body.date,
+      hours: body.type === 'BANK_HOLIDAY' ? 7.25 : clampLeave(body.hours), // bank holiday = full day
       notes: body.notes, status: 'PENDING', requestedAt: new Date().toISOString(),
     };
     leave.push(l);
@@ -358,7 +359,7 @@ function leaveRoute(db: MockDb, me: User, req: ParsedReq): MockResult {
     const l = leave.find((x) => x.id === p[2]);
     if (!l) return err(404, 'Leave not found');
     if (l.userId !== me.id && !isAdmin(me)) return err(403, 'Forbidden');
-    l.hours = clampLeave(body.hours ?? l.hours);
+    l.hours = l.type === 'BANK_HOLIDAY' ? 7.25 : clampLeave(body.hours ?? l.hours);
     if (body.notes !== undefined) l.notes = body.notes;
     l.status = 'PENDING';
     l.decidedBy = undefined; l.decidedAt = undefined;

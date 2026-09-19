@@ -120,10 +120,15 @@
               </td>
               @for (d of days(); track $index) {
                 <td class="c-day cell leave {{ leaveStatusClass(lt.type, d) }}" [class.weekend]="isWeekend(d)"
-                    [title]="leaveStatusLabel(lt.type, d)">
-                  <input type="text" inputmode="decimal" class="leave-input"
-                    [value]="fmtCell(leaveHours(lt.type, d))"
-                    (change)="setLeave(lt.type, d, $any($event.target).value)" />
+                    [class.autobh]="lt.type === 'BANK_HOLIDAY' && autoBankHoliday(d)"
+                    [title]="lt.type === 'BANK_HOLIDAY' && autoBankHoliday(d) ? 'Irish bank holiday' : leaveStatusLabel(lt.type, d)">
+                  @if (lt.type === 'BANK_HOLIDAY' && autoBankHoliday(d)) {
+                    <span class="autobh-val">{{ fmtCell(leaveHours(lt.type, d)) }}</span>
+                  } @else {
+                    <input type="text" inputmode="decimal" class="leave-input"
+                      [value]="fmtCell(leaveHours(lt.type, d))"
+                      (change)="setLeave(lt.type, d, $any($event.target).value)" />
+                  }
                 </td>
               }
               <td class="c-wk total">{{ fmtTotal(leaveRowTotal(lt.type)) }}</td>

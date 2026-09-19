@@ -26,6 +26,8 @@ makes the app live with **no frontend changes**.
   - `CONTRACTOR` — logs time in-app.
   - `STAFF` — does not log in-app; their hours arrive via **uploaded** external timesheet (xlsx). The Project Summary **merges** in-app + uploaded, with **in-app winning** on conflict.
 - **Approval**: time entries **save freely** (no approval). **Leave always requires approval** by a domain admin (statuses `PENDING`/`APPROVED`/`REJECTED`). Leave is entered as **hours per day, max 7.25** (the standard Deloitte working day). **Editing a leave's hours resets it to `PENDING`** (re-approval). Leave rows can be deleted.
+- **Bank Holiday leave is always a full day = 7.25h** (any submitted value is coerced to 7.25 server-side).
+- **Irish public (bank) holidays are auto-marked** on the Timesheet and Visibility Plan for every user, as Bank Holiday / 7.25h, without needing a leave record. The frontend computes the Republic-of-Ireland holiday calendar client-side (New Year's Day; St Brigid's Day — 1 Feb if Friday else first Mon in Feb; St Patrick's Day; Easter Monday; first Mon of May/Jun/Aug; last Mon of Oct; Christmas Day; St Stephen's Day) and overlays them (read-only). The backend does **not** need to create these records, but any server-side report/day-count logic must apply the **same holiday calendar** so totals agree. Weekends are also auto-marked Bank Holiday (no hours).
 - **Hours convention**: the standard working day is **7.25h** (weekly target 36.25h) and caps leave per day. Note the Project Summary still expresses **days = hours / 8** per the finance spec — the 7.25 cap applies to leave entry, not to the report's day divisor. All hour values display to **2 decimals** (e.g. `8.00`).
 
 ---

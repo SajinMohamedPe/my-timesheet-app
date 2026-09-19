@@ -8,7 +8,7 @@ import * as XLSX from 'xlsx';
 import { AuthService } from '../../core/services/auth.service';
 import { DomainContextService } from '../../core/services/domain-context.service';
 import { ApiService, UploadedRow, VisibilityPlan } from '../../core/services/api.service';
-import { currentMonth } from '../../core/util/dates';
+import { currentMonth, isIrishBankHoliday, BANK_HOLIDAY_HOURS } from '../../core/util/dates';
 import { ExportService } from '../../core/services/export.service';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { LeaveType } from '../../core/models/models';
@@ -101,6 +101,8 @@ export class VisibilityComponent implements OnInit {
     }
     const hrs = row.entries.filter((e) => e.date === iso).reduce((s, e) => s + e.hours, 0);
     if (hrs > 0) return { label: this.hlabel(hrs), kind: 'work' };
+    // Irish public holidays are marked by default (weekdays get the 7.25h label).
+    if (isIrishBankHoliday(day)) return { label: this.hlabel(BANK_HOLIDAY_HOURS), kind: 'bank' };
     if (this.isWeekend(day)) return { label: '', kind: 'bank' };
     return { label: '', kind: 'empty' };
   }
