@@ -78,6 +78,7 @@ export class ExportService {
 
   employeeReportsToExcel(reports: EmployeeReport[]): void {
     const wb = XLSX.utils.book_new();
+    const usedNames = new Set<string>();
     for (const rep of reports) {
       const aoa: (string | number)[][] = [];
       aoa.push([`${rep.name} — ${rep.monthLabel}`]);
@@ -92,7 +93,12 @@ export class ExportService {
       }
       const ws = XLSX.utils.aoa_to_sheet(aoa);
       ws['!cols'] = [{ wch: 14 }, { wch: 12 }, { wch: 24 }, { wch: 8 }, { wch: 30 }];
-      XLSX.utils.book_append_sheet(wb, ws, safeSheet(rep.name));
+      // Ensure a unique sheet name (Excel rejects duplicates).
+      let name = safeSheet(rep.name);
+      let n = 2;
+      while (usedNames.has(name.toLowerCase())) name = safeSheet(rep.name).slice(0, 25) + ' (' + n++ + ')';
+      usedNames.add(name.toLowerCase());
+      XLSX.utils.book_append_sheet(wb, ws, name);
     }
     const month = reports[0]?.month ?? '';
     const single = reports.length === 1 ? safeSheet(reports[0].name) + '_' : 'All_Employees_';
@@ -141,5 +147,6 @@ function groupByProject(summary: ProjectSummary) {
 }
 
 const round = (n: number) => Math.round(n * 10000) / 10000;
-const safeSheet = (s: string) => s.replace(/[\\/?*[\]:]/g, '').slice(0, 28);
+// Excel sheet names: non-empty, <=31 chars, no \ / ? * [ ] :
+const safeSheet = (s?: string | null) => ((s ?? 'Sheet').replace(/[\\/?*[\]:]/g, '').slice(0, 28) || 'Sheet');
 const fileName = (prefix: string, month: string, ext: string) => `${prefix}_${month}.${ext}`;

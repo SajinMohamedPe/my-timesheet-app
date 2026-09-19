@@ -16,7 +16,8 @@ export const mockApiInterceptor: HttpInterceptorFn = (req, next): Observable<Htt
   const url = req.url;
   if (!url.includes('/api/')) return next(req);
 
-  const parsed = parse(req.url, req.method, req.body, req.headers.get('Authorization'));
+  // urlWithParams includes the serialized query string; req.url does NOT.
+  const parsed = parse(req.urlWithParams, req.method, req.body, req.headers.get('Authorization'));
   const result = handleMockRequest(db, parsed);
 
   const latency = 120 + Math.random() * 180;
