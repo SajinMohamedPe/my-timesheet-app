@@ -13,8 +13,10 @@ import { AuditEntry } from '../../core/models/models';
   <dtt-page-header icon="history" title="Timesheet Audit"
     [crumb]="'Time Tracking · Audit · ' + (ctx.selected()?.name ?? 'All domains')" />
 
-  <div class="card">
-    <p class="muted small">Every admin edit to another person's timesheet or leave is recorded here.</p>
+  <div class="block">
+    <div class="block-h"><mat-icon class="bi">history</mat-icon><span class="bname">Edit history</span>
+      <span class="bdesc">{{ ctx.selected()?.name ?? 'All domains' }} · admin edits to others' time &amp; leave</span></div>
+    <div class="block-body flush">
     <table class="dtt">
       <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Entity</th><th>Affected</th><th>Detail</th></tr></thead>
       <tbody>
@@ -31,6 +33,7 @@ import { AuditEntry } from '../../core/models/models';
         @if (!entries().length) { <tr><td colspan="6" class="muted">No audit records yet. Edit another user's timesheet as an admin to see entries here.</td></tr> }
       </tbody>
     </table>
+    </div>
   </div>
   `,
   styles: [`

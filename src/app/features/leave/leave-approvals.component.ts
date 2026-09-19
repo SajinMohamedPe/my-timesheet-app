@@ -22,7 +22,10 @@ const TYPE_LABEL: Record<string, string> = {
     <button [class.active]="filter()==='ALL'" (click)="filter.set('ALL')">All</button>
   </div>
 
-  <div class="card">
+  <div class="block">
+    <div class="block-h"><mat-icon class="bi">fact_check</mat-icon><span class="bname">Leave requests</span>
+      <span class="bdesc">{{ ctx.selected()?.name ?? 'All domains' }}</span></div>
+    <div class="block-body flush">
     <table class="dtt">
       <thead><tr><th>Employee</th><th>Type</th><th>Date</th><th>Duration</th><th>Notes</th><th>Status</th><th>Action</th></tr></thead>
       <tbody>
@@ -45,6 +48,7 @@ const TYPE_LABEL: Record<string, string> = {
         @if (!shown().length) { <tr><td colspan="7" class="muted">No leave requests.</td></tr> }
       </tbody>
     </table>
+    </div>
   </div>
   `,
   styles: [`

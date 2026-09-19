@@ -14,10 +14,10 @@ import { User } from '../../core/models/models';
   template: `
   <dtt-page-header icon="bar_chart" title="Reports" crumb="Time Tracking · Reports" />
 
-  <div class="card">
-    <h3>Generate Report</h3>
-    <p class="muted">Download monthly timesheet reports per employee or for all employees.</p>
-
+  <div class="block">
+    <div class="block-h"><mat-icon class="bi">download</mat-icon><span class="bname">Generate Report</span>
+      <span class="bdesc">monthly timesheet — per employee or consolidated</span></div>
+    <div class="block-body">
     <div class="controls">
       <div class="field">
         <label>EMPLOYEE</label>
@@ -37,10 +37,13 @@ import { User } from '../../core/models/models';
     @if (selected === 'ALL') {
       <div class="note"><mat-icon>info</mat-icon> All employees combined into a <b>single file</b> — one sheet per employee (Excel) or one section per employee (PDF).</div>
     }
+    </div>
   </div>
 
-  <div class="quick">
-    <div class="qtitle">QUICK DOWNLOAD — INDIVIDUAL</div>
+  <div class="block">
+    <div class="block-h"><mat-icon class="bi">groups</mat-icon><span class="bname">Quick download</span>
+      <span class="bdesc">individual employees</span></div>
+    <div class="block-body">
     <div class="cards">
       @for (u of users(); track u.id) {
         <div class="qcard">
@@ -52,6 +55,7 @@ import { User } from '../../core/models/models';
           </div>
         </div>
       }
+    </div>
     </div>
   </div>
   @if (busy()) { <p class="muted">{{ busy() }}</p> }

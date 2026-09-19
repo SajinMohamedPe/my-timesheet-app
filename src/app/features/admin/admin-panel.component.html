@@ -17,12 +17,12 @@
 
 <!-- DOMAINS -->
 @if (tab()==='DOMAINS') {
-  <div class="card">
-    <div class="th-row">
-      <span class="count">{{ domains().length }} domains</span>
-      <span class="spacer"></span>
-      <button class="btn green" (click)="addingDomain.set(!addingDomain())"><mat-icon>add</mat-icon> Add Domain</button>
+  <div class="block">
+    <div class="block-h"><mat-icon class="bi">workspaces</mat-icon><span class="bname">Domains</span>
+      <span class="bdesc">{{ domains().length }} total</span><span class="spacer"></span>
+      <button class="btn green sm" (click)="addingDomain.set(!addingDomain())"><mat-icon>add</mat-icon> Add Domain</button>
     </div>
+    <div class="block-body">
     @if (addingDomain()) {
       <div class="addform">
         <input placeholder="Name (e.g. AIM)" [(ngModel)]="newDomain.name" />
@@ -47,17 +47,18 @@
         }
       </tbody>
     </table>
+    </div>
   </div>
 }
 
 <!-- WBS -->
 @if (tab()==='WBS') {
-  <div class="card">
-    <div class="th-row">
-      <span class="count">{{ wbs().length }} WBS codes · {{ ctx.selected()?.name ?? 'all domains' }}</span>
-      <span class="spacer"></span>
-      <button class="btn green" (click)="addingWbs.set(!addingWbs())" [disabled]="!ctx.selectedId()"><mat-icon>add</mat-icon> Add WBS</button>
+  <div class="block">
+    <div class="block-h"><mat-icon class="bi">tag</mat-icon><span class="bname">WBS Codes</span>
+      <span class="bdesc">{{ wbs().length }} · {{ ctx.selected()?.name ?? 'all domains' }}</span><span class="spacer"></span>
+      <button class="btn green sm" (click)="addingWbs.set(!addingWbs())" [disabled]="!ctx.selectedId()"><mat-icon>add</mat-icon> Add WBS</button>
     </div>
+    <div class="block-body">
     @if (addingWbs()) {
       <div class="addform">
         <input placeholder="Code (e.g. WBS-1005)" [(ngModel)]="newWbs.code" />
@@ -85,20 +86,21 @@
         @if (!wbs().length) { <tr><td colspan="5" class="muted">No WBS codes. Select a domain and add one.</td></tr> }
       </tbody>
     </table>
+    </div>
   </div>
 }
 
 <!-- USERS -->
 @if (tab()==='USERS') {
-  <div class="card">
+  <div class="block">
+    <div class="block-h"><mat-icon class="bi">group</mat-icon><span class="bname">Users &amp; Roles</span>
+      <span class="bdesc">{{ users().length }} · {{ ctx.selected()?.name ?? 'all domains' }}</span><span class="spacer"></span>
+      <button class="btn green sm" (click)="addingUser.set(!addingUser())" [disabled]="!ctx.selectedId()"><mat-icon>person_add</mat-icon> Add User</button>
+    </div>
+    <div class="block-body">
     <div class="info-banner">
       <mat-icon>info</mat-icon>
       Admin rights are a <b>role</b> on any employee account. Only a <b>Super Admin</b> grants admin rights and allocates which domain(s) an admin manages.
-    </div>
-    <div class="th-row">
-      <span class="count">{{ users().length }} users · {{ ctx.selected()?.name ?? 'all domains' }}</span>
-      <span class="spacer"></span>
-      <button class="btn green" (click)="addingUser.set(!addingUser())" [disabled]="!ctx.selectedId()"><mat-icon>person_add</mat-icon> Add User</button>
     </div>
     @if (addingUser()) {
       <div class="addform">
@@ -135,5 +137,6 @@
         }
       </tbody>
     </table>
+    </div>
   </div>
 }
