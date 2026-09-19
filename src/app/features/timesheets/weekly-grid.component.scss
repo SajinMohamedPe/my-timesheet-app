@@ -38,11 +38,10 @@ td.rowhead { padding: 8px 20px; }
 td.rowhead .code { font-weight: 700; font-size: 13px; }
 td.rowhead .desc { font-size: 13px; color: var(--dtt-ink); font-weight: 600; }
 .rowhead-inner { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.rm { border: none; background: transparent; cursor: pointer; opacity: 0; transition: opacity .12s;
-  color: #c2c6ca; display: flex; align-items: center; padding: 2px; border-radius: 6px; }
-tr:hover .rm { opacity: 1; }
+.rm { border: none; background: transparent; cursor: pointer; color: #9aa0a6;
+  display: flex; align-items: center; padding: 3px; border-radius: 6px; }
 .rm:hover { color: #b4322f; background: #fdeceb; }
-.rm mat-icon { font-size: 18px; width: 18px; height: 18px; }
+.rm mat-icon { font-size: 19px; width: 19px; height: 19px; }
 
 td.cell { padding: 2px; text-align: center; }
 td.cell input {
@@ -52,25 +51,15 @@ td.cell input {
 td.cell input:hover { border-color: var(--dtt-line); }
 td.cell input:focus { outline: none; border-color: var(--dtt-green); background: #fff; }
 
-/* Leave cells: bold, vibrant, status-tinted background */
-td.cell.leave input { font-weight: 700; }
-.leave-input.annual   { color: #e53935; }
-.leave-input.sick     { color: #ab30c4; }
-.leave-input.training { color: #b8860b; }
-.leave-input.internal { color: #1976d2; }
-.leave-input.bank     { color: #546e7a; }
-td.cell.leave.pending  { background: #fff7e6; box-shadow: inset 3px 0 0 #f5a623; }
-td.cell.leave.approved { background: #eef7dd; box-shadow: inset 3px 0 0 #86bc25; }
-td.cell.leave.rejected { background: #fdeceb; box-shadow: inset 3px 0 0 #e53935; }
+/* Leave cells: black + bold. A thin left accent shows approval status only. */
+td.cell.leave input { font-weight: 700; color: var(--dtt-ink); }
+td.cell.leave.pending  { box-shadow: inset 3px 0 0 #f5a623; }
+td.cell.leave.approved { box-shadow: inset 3px 0 0 #86bc25; }
+td.cell.leave.rejected { box-shadow: inset 3px 0 0 #e53935; }
 td.cell.leave.rejected input { text-decoration: line-through; }
 
-/* Bold, vibrant leave row labels */
-.leave-label { font-weight: 700 !important; }
-.leave-label.annual   { color: #e53935 !important; }
-.leave-label.sick     { color: #ab30c4 !important; }
-.leave-label.training { color: #b8860b !important; }
-.leave-label.internal { color: #1976d2 !important; }
-.leave-label.bank     { color: #546e7a !important; }
+/* Leave row labels: black + bold (same as WBS codes) */
+.leave-label { font-weight: 700 !important; color: var(--dtt-ink) !important; }
 
 td.total { text-align: center; font-weight: 600; color: var(--dtt-ink); }
 .addrow td { padding: 6px 20px; border-bottom: 1px solid var(--dtt-line); }
