@@ -2,6 +2,7 @@ import { Component, computed, inject, OnInit, signal, effect } from '@angular/co
 import { MatIconModule } from '@angular/material/icon';
 import { DomainContextService } from '../../core/services/domain-context.service';
 import { ApiService } from '../../core/services/api.service';
+import { PageHeaderComponent } from '../../shared/page-header.component';
 import { LeaveRequest, User } from '../../core/models/models';
 
 const TYPE_LABEL: Record<string, string> = {
@@ -11,10 +12,10 @@ const TYPE_LABEL: Record<string, string> = {
 
 @Component({
   selector: 'dtt-leave-approvals',
-  imports: [MatIconModule],
+  imports: [MatIconModule, PageHeaderComponent],
   template: `
-  <h2 class="page-title">Leave Approvals</h2>
-  <p class="breadcrumb">Time Tracking · Leave Approvals · {{ ctx.selected()?.name ?? 'All domains' }}</p>
+  <dtt-page-header icon="fact_check" title="Leave Approvals"
+    [crumb]="'Time Tracking · Leave Approvals · ' + (ctx.selected()?.name ?? 'All domains')" />
 
   <div class="tabs">
     <button [class.active]="filter()==='PENDING'" (click)="filter.set('PENDING')">Pending ({{ pending().length }})</button>

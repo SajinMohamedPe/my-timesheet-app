@@ -5,14 +5,14 @@ import { forkJoin } from 'rxjs';
 import { DomainContextService } from '../../core/services/domain-context.service';
 import { ApiService, EmployeeReport } from '../../core/services/api.service';
 import { ExportService } from '../../core/services/export.service';
+import { PageHeaderComponent } from '../../shared/page-header.component';
 import { User } from '../../core/models/models';
 
 @Component({
   selector: 'dtt-reports',
-  imports: [FormsModule, MatIconModule],
+  imports: [FormsModule, MatIconModule, PageHeaderComponent],
   template: `
-  <h2 class="page-title">Time Tracking</h2>
-  <p class="breadcrumb">Time Tracking · Reports</p>
+  <dtt-page-header icon="bar_chart" title="Reports" crumb="Time Tracking · Reports" />
 
   <div class="card">
     <h3>Generate Report</h3>

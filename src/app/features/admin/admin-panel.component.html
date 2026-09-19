@@ -1,5 +1,5 @@
-<h2 class="page-title">Admin Panel</h2>
-<p class="breadcrumb">Manage domains, WBS codes and user roles · {{ ctx.selected()?.name ?? 'All domains' }}</p>
+<dtt-page-header icon="settings" title="Admin Panel"
+  [crumb]="'Manage domains, WBS codes and user roles · ' + (ctx.selected()?.name ?? 'All domains')" />
 
 <div class="card tabbar">
   <div class="left">

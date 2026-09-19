@@ -1,70 +1,112 @@
-import { Component, computed, inject, OnInit } from '@angular/core';
+import { Component, computed, ElementRef, HostListener, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink, RouterLinkActive, RouterOutlet, Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { AuthService } from '../../core/services/auth.service';
 import { DomainContextService } from '../../core/services/domain-context.service';
 
-interface NavItem { label: string; icon: string; link?: string; params?: any[]; children?: NavItem[]; }
+interface Feature { label: string; icon: string; desc: string; link: string; admin?: boolean; }
+interface NavItem { label: string; icon: string; link: string; admin?: boolean; }
+interface NavParent { label: string; icon: string; expandable?: boolean; link?: string; children?: NavItem[]; }
+interface NavGroup { heading: string; items: NavParent[]; }
 
 @Component({
   selector: 'dtt-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatIconModule, MatMenuModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatIconModule, MatMenuModule, FormsModule],
   styleUrl: './shell.component.scss',
   template: `
-  <div class="shell">
-    <aside class="sidebar">
-      <div class="side-brand">
-        <span class="bar"></span>
-        <div><div class="bn">Deloitte</div><div class="bs">Account Management</div></div>
+  <div class="shell" [class.collapsed]="collapsed()">
+    <!-- Top bar spans the full width -->
+    <header class="topbar">
+      <button class="toggle" (click)="collapsed.set(!collapsed())" title="Toggle menu">
+        <mat-icon>{{ collapsed() ? 'menu' : 'close' }}</mat-icon>
+      </button>
+
+      <div class="brand">
+        <div class="bn">Deloitte</div>
+        <div class="bs">Account Management</div>
       </div>
 
-      <nav>
-        @for (group of nav(); track group.label) {
-          @if (group.label !== '_') { <div class="nav-group">{{ group.label }}</div> }
-          @for (item of group.children!; track item.label) {
-            <a class="nav-item" [routerLink]="item.link" [routerLinkActive]="'active'"
-               [queryParams]="item.params?.[0]">
-              <mat-icon>{{ item.icon }}</mat-icon><span>{{ item.label }}</span>
-            </a>
-          }
-        }
-      </nav>
-    </aside>
-
-    <div class="main">
-      <header class="topbar">
-        <div class="search"><mat-icon>search</mat-icon><input placeholder="Search features, tabs…" /></div>
-        <span class="spacer"></span>
-
-        @if (ctx.domains().length) {
-          <button class="domain-switch" [matMenuTriggerFor]="dmenu"
-                  [disabled]="!ctx.hasMultiple()">
-            <mat-icon>workspaces</mat-icon>
-            <span>{{ ctx.selected()?.name ?? 'All domains' }}</span>
-            @if (ctx.hasMultiple()) { <mat-icon>expand_more</mat-icon> }
-          </button>
-          <mat-menu #dmenu="matMenu">
-            @for (d of ctx.domains(); track d.id) {
-              <button mat-menu-item (click)="ctx.select(d.id)">
-                <mat-icon>{{ d.id === ctx.selectedId() ? 'check' : 'workspaces' }}</mat-icon>
-                {{ d.name }} <span class="dm-desc">— {{ d.description }}</span>
+      <div class="search" (click)="$event.stopPropagation()">
+        <mat-icon>search</mat-icon>
+        <input [(ngModel)]="query" (focus)="open.set(true)" (keydown.escape)="close()"
+               (keydown.enter)="go(results()[0])" placeholder="Search features, tabs…" />
+        @if (open() && query() && results().length) {
+          <div class="results">
+            @for (r of results(); track r.link) {
+              <button class="result" (click)="go(r)">
+                <span class="ricon"><mat-icon>{{ r.icon }}</mat-icon></span>
+                <span class="rtext"><span class="rt">{{ r.label }}</span><span class="rd">{{ r.desc }}</span></span>
               </button>
             }
-          </mat-menu>
-        }
-
-        <div class="user">
-          <div class="avatar">{{ initials() }}</div>
-          <div class="who">
-            <div class="name">{{ auth.user()?.name }}</div>
-            <div class="role">{{ roleLabel() }}</div>
           </div>
-        </div>
-        <button class="signout" (click)="signOut()"><mat-icon>logout</mat-icon> Sign Out</button>
-      </header>
+        }
+        @if (open() && query() && !results().length) {
+          <div class="results"><div class="empty">No matches for “{{ query() }}”</div></div>
+        }
+      </div>
 
-      <div class="content"><router-outlet /></div>
+      <span class="spacer"></span>
+
+      @if (ctx.domains().length) {
+        <button class="domain-switch" [matMenuTriggerFor]="dmenu" [disabled]="!ctx.hasMultiple()">
+          <mat-icon>workspaces</mat-icon>
+          <span>{{ ctx.selected()?.name ?? 'All domains' }}</span>
+          @if (ctx.hasMultiple()) { <mat-icon class="cx">expand_more</mat-icon> }
+        </button>
+        <mat-menu #dmenu="matMenu">
+          @for (d of ctx.domains(); track d.id) {
+            <button mat-menu-item (click)="ctx.select(d.id)">
+              <mat-icon>{{ d.id === ctx.selectedId() ? 'check' : 'workspaces' }}</mat-icon>
+              {{ d.name }} <span class="dm-desc">— {{ d.description }}</span>
+            </button>
+          }
+        </mat-menu>
+      }
+
+      <div class="user">
+        <div class="avatar">{{ initials() }}</div>
+        <div class="who">
+          <div class="name">{{ auth.user()?.name }}</div>
+          <div class="role">{{ roleLabel() }}</div>
+        </div>
+      </div>
+      <button class="signout" (click)="signOut()"><mat-icon>logout</mat-icon><span>Sign Out</span></button>
+    </header>
+
+    <div class="body">
+      <aside class="sidebar">
+        <nav>
+          @for (group of nav(); track group.heading) {
+            @if (group.heading !== '_') { <div class="nav-group">{{ group.heading }}</div> }
+            @for (item of group.items; track item.label) {
+              @if (item.expandable) {
+                <button class="nav-item parent" (click)="toggleExpand(item.label)" [title]="item.label">
+                  <mat-icon class="lead">{{ item.icon }}</mat-icon>
+                  <span class="lbl">{{ item.label }}</span>
+                  <mat-icon class="caret">{{ expanded().has(item.label) ? 'expand_less' : 'expand_more' }}</mat-icon>
+                </button>
+                @if (expanded().has(item.label) && !collapsed()) {
+                  <div class="children">
+                    @for (child of item.children!; track child.label) {
+                      <a class="nav-item child" [routerLink]="child.link" routerLinkActive="active" [title]="child.label">
+                        <mat-icon class="lead">{{ child.icon }}</mat-icon><span class="lbl">{{ child.label }}</span>
+                      </a>
+                    }
+                  </div>
+                }
+              } @else {
+                <a class="nav-item" [routerLink]="item.link" routerLinkActive="active" [title]="item.label">
+                  <mat-icon class="lead">{{ item.icon }}</mat-icon><span class="lbl">{{ item.label }}</span>
+                </a>
+              }
+            }
+          }
+        </nav>
+      </aside>
+
+      <main class="content"><router-outlet /></main>
     </div>
   </div>
   `,
@@ -73,36 +115,85 @@ export class ShellComponent implements OnInit {
   auth = inject(AuthService);
   ctx = inject(DomainContextService);
   private router = inject(Router);
+  private host = inject(ElementRef);
+
+  collapsed = signal(false);
+  query = signal('');
+  open = signal(false);
+  expanded = signal(new Set<string>(['Time Tracking', 'Project Management']));
 
   ngOnInit() { this.ctx.load(); }
 
-  readonly nav = computed<NavItem[]>(() => {
+  // Close the search dropdown when clicking elsewhere.
+  @HostListener('document:click', ['$event'])
+  onDocClick(ev: Event) {
+    if (!this.host.nativeElement.querySelector('.search').contains(ev.target)) this.open.set(false);
+  }
+
+  private readonly features: Feature[] = [
+    { label: 'Home', icon: 'grid_view', desc: 'Dashboard overview', link: '/home' },
+    { label: 'Timesheets', icon: 'grid_on', desc: 'Weekly time entry', link: '/timesheets' },
+    { label: 'Visibility Plan', icon: 'visibility', desc: 'Team leave calendar for the month', link: '/visibility' },
+    { label: 'Reports', icon: 'bar_chart', desc: 'Download monthly timesheet reports', link: '/reports', admin: true },
+    { label: 'Leave Approvals', icon: 'fact_check', desc: 'Approve or reject pending leave', link: '/leave-approvals', admin: true },
+    { label: 'Timesheet Audit', icon: 'history', desc: 'History of admin edits', link: '/audit', admin: true },
+    { label: 'Admin Panel', icon: 'settings', desc: 'Domains, WBS codes and user roles', link: '/admin', admin: true },
+    { label: 'Billing', icon: 'credit_card', desc: 'Invoicing & billing (coming soon)', link: '/coming-soon/Billing' },
+    { label: 'Forecasting', icon: 'insights', desc: 'Capacity forecasting (coming soon)', link: '/coming-soon/Forecasting' },
+    { label: 'Leakage Report', icon: 'travel_explore', desc: 'Revenue leakage (coming soon)', link: '/coming-soon/Leakage Report' },
+    { label: 'Budget Management', icon: 'savings', desc: 'Project budgets (coming soon)', link: '/coming-soon/Budget Management' },
+  ];
+
+  private allowed = computed(() => this.features.filter((f) => !f.admin || this.auth.isAdmin()));
+
+  results = computed(() => {
+    const q = this.query().trim().toLowerCase();
+    if (!q) return [];
+    return this.allowed()
+      .filter((f) => f.label.toLowerCase().includes(q) || f.desc.toLowerCase().includes(q))
+      .slice(0, 6);
+  });
+
+  go(f?: Feature) {
+    if (!f) return;
+    this.router.navigateByUrl(f.link);
+    this.query.set(''); this.open.set(false);
+  }
+  close() { this.open.set(false); this.query.set(''); }
+  toggleExpand(label: string) {
+    const s = new Set(this.expanded());
+    s.has(label) ? s.delete(label) : s.add(label);
+    this.expanded.set(s);
+  }
+
+  nav = computed<NavGroup[]>(() => {
     const admin = this.auth.isAdmin();
-    const superAdmin = this.auth.isSuperAdmin();
-    const core: NavItem[] = [
+    const tt: NavItem[] = [
       { label: 'Timesheets', icon: 'grid_on', link: '/timesheets' },
       { label: 'Visibility Plan', icon: 'visibility', link: '/visibility' },
     ];
     if (admin) {
-      core.push({ label: 'Leave Approvals', icon: 'fact_check', link: '/leave-approvals' });
-      core.push({ label: 'Reports', icon: 'bar_chart', link: '/reports' });
-      core.push({ label: 'Timesheet Audit', icon: 'history', link: '/audit' });
+      tt.push({ label: 'Leave Approvals', icon: 'fact_check', link: '/leave-approvals' });
+      tt.push({ label: 'Reports', icon: 'bar_chart', link: '/reports' });
+      tt.push({ label: 'Timesheet Audit', icon: 'history', link: '/audit' });
     }
-    core.push({ label: 'Billing', icon: 'credit_card', link: '/coming-soon/Billing' });
-    core.push({ label: 'Forecasting', icon: 'insights', link: '/coming-soon/Forecasting' });
-    core.push({ label: 'Leakage Report', icon: 'search', link: '/coming-soon/Leakage Report' });
-
-    const groups: NavItem[] = [
-      { label: '_', icon: '', children: [{ label: 'Home', icon: 'home', link: '/home' }] },
-      { label: 'CORE', icon: '', children: core },
-      { label: 'PROJECTS', icon: '', children: [
-        { label: 'Budget Management', icon: 'savings', link: '/coming-soon/Budget Management' },
+    const core: NavParent[] = [
+      { label: 'Time Tracking', icon: 'schedule', expandable: true, children: tt },
+      { label: 'Billing', icon: 'credit_card', link: '/coming-soon/Billing' },
+      { label: 'Forecasting', icon: 'insights', link: '/coming-soon/Forecasting' },
+      { label: 'Leakage Report', icon: 'travel_explore', link: '/coming-soon/Leakage Report' },
+    ];
+    const groups: NavGroup[] = [
+      { heading: '_', items: [{ label: 'Home', icon: 'grid_view', link: '/home' }] },
+      { heading: 'CORE', items: core },
+      { heading: 'PROJECTS', items: [
+        { label: 'Project Management', icon: 'inventory_2', expandable: true, children: [
+          { label: 'Budget Management', icon: 'savings', link: '/coming-soon/Budget Management' },
+        ] },
       ] },
     ];
     if (admin) {
-      groups.push({ label: 'ADMIN', icon: '', children: [
-        { label: superAdmin ? 'Admin Panel' : 'Admin Panel', icon: 'settings', link: '/admin' },
-      ] });
+      groups.push({ heading: 'ADMIN', items: [{ label: 'Admin Panel', icon: 'settings', link: '/admin' }] });
     }
     return groups;
   });

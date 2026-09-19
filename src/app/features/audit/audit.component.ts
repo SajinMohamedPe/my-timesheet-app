@@ -3,14 +3,15 @@ import { DatePipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { DomainContextService } from '../../core/services/domain-context.service';
 import { ApiService } from '../../core/services/api.service';
+import { PageHeaderComponent } from '../../shared/page-header.component';
 import { AuditEntry } from '../../core/models/models';
 
 @Component({
   selector: 'dtt-audit',
-  imports: [MatIconModule, DatePipe],
+  imports: [MatIconModule, DatePipe, PageHeaderComponent],
   template: `
-  <h2 class="page-title">Timesheet Audit</h2>
-  <p class="breadcrumb">Time Tracking · Timesheet Audit · {{ ctx.selected()?.name ?? 'All domains' }}</p>
+  <dtt-page-header icon="history" title="Timesheet Audit"
+    [crumb]="'Time Tracking · Audit · ' + (ctx.selected()?.name ?? 'All domains')" />
 
   <div class="card">
     <p class="muted small">Every admin edit to another person's timesheet or leave is recorded here.</p>

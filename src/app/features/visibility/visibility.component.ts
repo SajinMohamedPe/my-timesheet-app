@@ -7,6 +7,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { DomainContextService } from '../../core/services/domain-context.service';
 import { ApiService, UploadedRow, VisibilityPlan } from '../../core/services/api.service';
 import { ExportService } from '../../core/services/export.service';
+import { PageHeaderComponent } from '../../shared/page-header.component';
 import { LeaveType } from '../../core/models/models';
 
 type Tab = 'LIVE' | 'UPLOADED' | 'DIFF';
@@ -24,7 +25,7 @@ const LEAVE_COLORS: Record<LeaveType, string> = {
 
 @Component({
   selector: 'dtt-visibility',
-  imports: [FormsModule, MatIconModule, MatMenuModule],
+  imports: [FormsModule, MatIconModule, MatMenuModule, PageHeaderComponent],
   templateUrl: './visibility.component.html',
   styleUrl: './visibility.component.scss',
 })

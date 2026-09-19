@@ -6,6 +6,7 @@ import { forkJoin } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { DomainContextService } from '../../core/services/domain-context.service';
 import { ApiService, WbsCodeView } from '../../core/services/api.service';
+import { PageHeaderComponent } from '../../shared/page-header.component';
 import {
   Domain, LeaveDuration, LeaveRequest, LeaveType, TimeEntry, User,
 } from '../../core/models/models';
@@ -24,7 +25,7 @@ const LEAVE_TYPES: { type: LeaveType; label: string }[] = [
 
 @Component({
   selector: 'dtt-weekly-grid',
-  imports: [FormsModule, MatIconModule, MatMenuModule],
+  imports: [FormsModule, MatIconModule, MatMenuModule, PageHeaderComponent],
   templateUrl: './weekly-grid.component.html',
   styleUrl: './weekly-grid.component.scss',
 })

@@ -4,15 +4,16 @@ import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../core/services/auth.service';
 import { DomainContextService } from '../../core/services/domain-context.service';
 import { ApiService } from '../../core/services/api.service';
+import { PageHeaderComponent } from '../../shared/page-header.component';
 import { LeaveRequest, TimeEntry } from '../../core/models/models';
 import { effect } from '@angular/core';
 
 @Component({
   selector: 'dtt-home',
-  imports: [RouterLink, MatIconModule],
+  imports: [RouterLink, MatIconModule, PageHeaderComponent],
   template: `
-  <h2 class="page-title">Welcome, {{ firstName() }}</h2>
-  <p class="breadcrumb">Home · {{ ctx.selected()?.name ?? 'All domains' }}</p>
+  <dtt-page-header icon="grid_view" [title]="'Welcome, ' + firstName()"
+    [crumb]="'Home · ' + (ctx.selected()?.name ?? 'All domains')" />
 
   <div class="tiles">
     <div class="tile">

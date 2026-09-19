@@ -4,13 +4,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../core/services/auth.service';
 import { DomainContextService } from '../../core/services/domain-context.service';
 import { ApiService, WbsCodeView } from '../../core/services/api.service';
+import { PageHeaderComponent } from '../../shared/page-header.component';
 import { Domain, User } from '../../core/models/models';
 
 type Tab = 'DOMAINS' | 'WBS' | 'USERS';
 
 @Component({
   selector: 'dtt-admin-panel',
-  imports: [FormsModule, MatIconModule],
+  imports: [FormsModule, MatIconModule, PageHeaderComponent],
   templateUrl: './admin-panel.component.html',
   styleUrl: './admin-panel.component.scss',
 })
