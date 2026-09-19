@@ -24,6 +24,10 @@
       <div class="v">{{ fmtTotal(weekTotal()) || '0.00' }}<span>h</span></div>
       <div class="l">this week @if (saving()) { · saving… }</div>
     </div>
+    <button class="save-btn" [class.done]="justSaved()" (click)="save()">
+      <mat-icon>{{ justSaved() ? 'check_circle' : 'save' }}</mat-icon>
+      <span>{{ justSaved() ? 'Saved' : 'Save' }}</span>
+    </button>
   </div>
 
   <div class="gridscroll">

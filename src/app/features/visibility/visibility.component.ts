@@ -2,6 +2,8 @@ import { Component, computed, inject, OnInit, signal, effect } from '@angular/co
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { provideNativeDateAdapter } from '@angular/material/core';
 import * as XLSX from 'xlsx';
 import { AuthService } from '../../core/services/auth.service';
 import { DomainContextService } from '../../core/services/domain-context.service';
@@ -25,7 +27,8 @@ const LEAVE_COLORS: Record<LeaveType, string> = {
 
 @Component({
   selector: 'dtt-visibility',
-  imports: [FormsModule, MatIconModule, MatMenuModule, PageHeaderComponent],
+  imports: [FormsModule, MatIconModule, MatMenuModule, MatDatepickerModule, PageHeaderComponent],
+  providers: [provideNativeDateAdapter()],
   templateUrl: './visibility.component.html',
   styleUrl: './visibility.component.scss',
 })
@@ -66,6 +69,11 @@ export class VisibilityComponent implements OnInit {
 
   prevMonth(): void { this.shiftMonth(-1); }
   nextMonth(): void { this.shiftMonth(1); }
+  /** Jump to any month from the calendar's year view. */
+  pickMonth(d: Date, picker: { close: () => void }): void {
+    this.month.set(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    picker.close();
+  }
   private shiftMonth(n: number): void {
     const [y, m] = this.month().split('-').map(Number);
     const d = new Date(y, m - 1 + n, 1);

@@ -62,6 +62,14 @@ export class WeeklyGridComponent implements OnInit {
   entries = signal<TimeEntry[]>([]);
   leaves = signal<LeaveRequest[]>([]);
   saving = signal(false);
+  justSaved = signal(false);
+
+  /** Entries autosave per cell; Save re-syncs and confirms. */
+  save(): void {
+    this.reload();
+    this.justSaved.set(true);
+    setTimeout(() => this.justSaved.set(false), 2500);
+  }
 
   constructor() {
     // Admins: when the active domain changes, reload the (domain-scoped) user
