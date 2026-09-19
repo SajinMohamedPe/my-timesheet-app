@@ -57,9 +57,12 @@ table.plan td.cell { font-weight: 700; }
 .block .gridwrap { padding: 8px; }
 table.plan { border-collapse: collapse; table-layout: fixed; width: 100%; }
 table.plan th.emp, table.plan td.emp { position: sticky; left: 0; background: var(--dtt-card, #fff); text-align: left; padding: 8px 12px; width: 180px; white-space: nowrap; z-index: 1; }
-table.plan th.d { width: 34px; text-align: center; font-size: 11px; color: var(--dtt-muted); padding: 4px 0; }
+/* Day columns have no fixed width: with table-layout:fixed they share the
+   remaining space equally, so the grid always fills the panel (no right gap)
+   and stays uniform. min-width on the table keeps them legible + scrollable. */
+table.plan th.d { text-align: center; font-size: 11px; color: var(--dtt-muted); padding: 4px 0; }
 table.plan th.d small { display: block; font-size: 9px; }
-table.plan td.cell { width: 34px; height: 34px; border: 1px solid #eef0f2; text-align: center; font-size: 10px; color: #fff; }
+table.plan td.cell { height: 34px; border: 1px solid #eef0f2; text-align: center; font-size: 10px; color: #fff; }
 table.plan td.cell.empty { color: var(--dtt-muted); }
 table.plan td.weekend { background-color: #eef0f2; }
 .ava { display: inline-flex; width: 22px; height: 22px; border-radius: 50%; background: var(--dtt-green); color: #fff; align-items: center; justify-content: center; font-size: 11px; margin-right: 8px; }

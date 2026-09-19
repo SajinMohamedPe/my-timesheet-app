@@ -50,6 +50,8 @@ Given the caller's JWT (subject = userId, claims include `role`, `domainIds`):
 
 "Scoped to domain" means: filter every collection so a `DOMAIN_ADMIN` only ever sees rows whose `domainId ∈ token.domainIds`; a `SUPER_ADMIN` sees all. Reject writes to out-of-scope domains with `403`.
 
+**Active-domain scoping (admins) vs. own-data (employees).** The UI has a domain switcher for admins only. When an admin passes `domainId=<active>`, scope the response to that one domain (this is how an admin views a contractor's timesheet, the visibility plan, approvals, audit and reports for a single engagement). An **employee always sees their own data across all their domains** — never restrict an employee's own timesheet/visibility to a single domain, even if a `domainId` is present.
+
 ---
 
 ## 3. Data model (PostgreSQL)
@@ -204,7 +206,13 @@ JWT claims: `sub`=userId, `role`, `domainIds` (array), plus standard `exp`/`iat`
 ### 4.5 Time entries
 
 - **GET `/api/time-entries?userId=&domainId=&from=&to=`** → `TimeEntry[]`.
-  Employees receive only their own; admins receive any within scope.
+  Employees receive only their own; admins receive any within scope. **All query
+  filters must be honoured server-side** — the weekly grid relies on `userId`
+  (admin viewing one contractor must get only that contractor's rows), `from`/`to`
+  (the visible week, `YYYY-MM-DD` inclusive) and, for an admin, `domainId` (the
+  active domain in the switcher; an admin's view of a contractor's timesheet is
+  scoped to that one domain). An employee's own grid is **not** domain-restricted
+  (spans all their domains).
   `TimeEntry = { id, userId, domainId, wbsCodeId, date, hours, notes?, source, updatedAt, updatedBy }`.
 - **POST `/api/time-entries`** — `{ "userId?","domainId","wbsCodeId","date","hours","notes?" }`. `userId` defaults to caller; logging for another user requires admin (audited).
 - **PUT `/api/time-entries/{id}`** — `{ "hours?","notes?","wbsCodeId?" }`. Owner or in-scope admin. Admin edits to others are audited.
@@ -226,7 +234,7 @@ JWT claims: `sub`=userId, `role`, `domainIds` (array), plus standard `exp`/`iat`
   ```jsonc
   { "month":"2026-09", "rows":[ { "userId","name","entries":TimeEntry[], "leaves":LeaveRequest[] } ] }
   ```
-  Admins get all in-scope users; employees get only themselves. Frontend colours cells (work / leave type / bank holiday / pending) and auto-marks weekends as Bank Holiday.
+  Admins get all in-scope users; employees get **only themselves but across ALL their own domains** (an employee's row must include entries/leave from every domain they belong to — the frontend does not pass `domainId` for employees, and if it did the server must still not hide the employee's own other-domain rows). Frontend colours cells (work / leave type / bank holiday / pending) and auto-marks weekends as Bank Holiday. **Cell display rules the frontend applies (backend just returns the data):** leave takes priority over work on a given day; every non-empty cell shows its hours; leave that is `PENDING` renders as the "Pending" state until approved, then as its leave-type colour.
 
 ### 4.8 Uploads (reconciliation)
 
