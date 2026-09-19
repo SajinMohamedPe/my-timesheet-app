@@ -20,7 +20,7 @@ export interface SelectOption { value: string; label: string; sub?: string; }
     </button>
 
     @if (open()) {
-      <div class="pop" (click)="$event.stopPropagation()">
+      <div class="pop" [style.top.px]="popTop()" [style.left.px]="popLeft()" (click)="$event.stopPropagation()">
         <div class="pop-search">
           <mat-icon>search</mat-icon>
           <input #box [(ngModel)]="query" [placeholder]="placeholder"
@@ -45,8 +45,9 @@ export interface SelectOption { value: string; label: string; sub?: string; }
       background: #fff; border-radius: 8px; padding: 6px 12px; cursor: pointer; color: var(--dtt-muted); font-size: 13px; }
     .trigger:hover { border-color: var(--dtt-green); color: var(--dtt-green-dark); }
     .trigger mat-icon { font-size: 17px; width: 17px; height: 17px; }
-    .pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 50; width: 320px; max-width: 80vw;
-      background: #fff; border: 1px solid var(--dtt-line); border-radius: 10px; box-shadow: 0 12px 28px rgba(0,0,0,.14); overflow: hidden; }
+    /* Fixed positioning so the popup escapes any overflow/scroll container. */
+    .pop { position: fixed; z-index: 200; width: 320px; max-width: 90vw;
+      background: #fff; border: 1px solid var(--dtt-line); border-radius: 10px; box-shadow: 0 12px 28px rgba(0,0,0,.18); overflow: hidden; }
     .pop-search { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--dtt-line); }
     .pop-search mat-icon { color: var(--dtt-muted); font-size: 19px; width: 19px; height: 19px; }
     .pop-search input { border: none; outline: none; width: 100%; font-size: 14px; }
@@ -69,6 +70,8 @@ export class SearchSelectComponent {
 
   open = signal(false);
   query = signal('');
+  popTop = signal(0);
+  popLeft = signal(0);
 
   filtered = computed(() => {
     const q = this.query().trim().toLowerCase();
@@ -83,6 +86,13 @@ export class SearchSelectComponent {
     this.open.set(!this.open());
     if (this.open()) {
       this.query.set('');
+      const btn = this.host.nativeElement.querySelector('.trigger') as HTMLElement;
+      const r = btn.getBoundingClientRect();
+      // Flip upward if there isn't room below.
+      const estHeight = 300;
+      const below = window.innerHeight - r.bottom;
+      this.popLeft.set(Math.min(r.left, window.innerWidth - 340));
+      this.popTop.set(below < estHeight ? Math.max(8, r.top - estHeight) : r.bottom + 6);
       setTimeout(() => this.host.nativeElement.querySelector('input')?.focus(), 0);
     }
   }

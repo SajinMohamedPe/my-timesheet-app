@@ -51,9 +51,11 @@ td.cell input {
 td.cell input:hover { border-color: var(--dtt-line); }
 td.cell input:focus { outline: none; border-color: var(--dtt-green); background: #fff; }
 
-/* Leave cells: black + bold. A thin left accent shows approval status only. */
+/* Leave cells: black + bold. Pending gets a filled amber background; other
+   statuses use a thin left accent only. */
 td.cell.leave input { font-weight: 700; color: var(--dtt-ink); }
-td.cell.leave.pending  { box-shadow: inset 3px 0 0 #f5a623; }
+td.cell.leave.pending  { background: #ffe9bf; box-shadow: inset 3px 0 0 #f5a623; }
+td.cell.leave.pending input:focus { background: #fffaf0; }
 td.cell.leave.approved { box-shadow: inset 3px 0 0 #86bc25; }
 td.cell.leave.rejected { box-shadow: inset 3px 0 0 #e53935; }
 td.cell.leave.rejected input { text-decoration: line-through; }

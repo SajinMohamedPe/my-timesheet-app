@@ -139,11 +139,11 @@
 </div>
 
 <dtt-confirm-dialog
-  [open]="!!confirmState()"
-  [title]="confirmState()?.title ?? ''"
-  [message]="confirmState()?.message ?? ''"
-  [detail]="confirmState()?.detail ?? ''"
-  confirmLabel="Delete record"
-  [danger]="true"
-  (confirm)="performConfirm()"
-  (cancel)="cancelConfirm()" />
+  [open]="!!dialog()"
+  [title]="dialog()?.title ?? ''"
+  [message]="dialog()?.message ?? ''"
+  [detail]="dialog()?.detail ?? ''"
+  [confirmLabel]="dialog()?.confirmLabel ?? 'Confirm'"
+  [danger]="dialog()?.danger ?? false"
+  (confirm)="runDialog()"
+  (cancel)="closeDialog()" />

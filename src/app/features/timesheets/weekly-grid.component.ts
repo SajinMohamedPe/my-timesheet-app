@@ -136,7 +136,10 @@ export class WeeklyGridComponent implements OnInit {
 
   // ---- Leave rows (only show added / existing types) ----
   visibleLeaveTypes = computed(() => {
-    const withData = new Set(this.leaves().map((l) => l.type));
+    // Only leave types with data IN THE VISIBLE WEEK (plus rows added via the
+    // picker this session) — so deleting a week's leave removes its row.
+    const weekIsos = new Set(this.days().map((d) => isoDate(d)));
+    const withData = new Set(this.leaves().filter((l) => weekIsos.has(l.date)).map((l) => l.type));
     this.extraLeave().forEach((t) => withData.add(t));
     return this.leaveTypes.filter((lt) => withData.has(lt.type));
   });
@@ -200,79 +203,89 @@ export class WeeklyGridComponent implements OnInit {
   leaveKey(type: LeaveType): string { return LEAVE_KEY[type]; }
   setLeave(type: LeaveType, day: Date, value: string): void {
     const existing = this.leaveFor(type, day);
+    let num = parseFloat(value);
+    // Clearing a value removes the request directly (no review needed).
+    if (!value || isNaN(num) || num <= 0) {
+      if (existing) { this.saving.set(true); this.api.deleteLeave(existing.id).subscribe(() => { this.saving.set(false); this.reload(); }); }
+      return;
+    }
+    num = Math.min(this.maxLeave, Math.round(num * 100) / 100); // cap at 7.25
+    const label = this.leaveTypes.find((l) => l.type === type)?.label ?? 'leave';
+    const dayLabel = day.toLocaleDateString('en-IE', { weekday: 'short', day: 'numeric', month: 'short' });
+    // Entering/editing leave opens a review modal before submitting for approval.
+    this.dialog.set({
+      title: existing ? 'Re-submit leave for approval?' : 'Submit leave for approval?',
+      message: `${label} of ${num.toFixed(2)}h on ${dayLabel} will be sent to your domain admin for review.`,
+      detail: existing ? 'Editing an existing leave resets it to Pending.' : '',
+      confirmLabel: 'Submit', danger: false,
+      onConfirm: () => this.saveLeave(type, day, num, existing),
+      onCancel: () => this.reload(), // revert the unsaved cell value
+    });
+  }
+
+  private saveLeave(type: LeaveType, day: Date, hours: number, existing?: LeaveRequest): void {
     const date = isoDate(day);
     const domainId = this.ctx.selectedId() ?? this.selectedUser()?.domainIds[0]!;
     this.saving.set(true);
     const done = () => { this.saving.set(false); this.reload(); };
-    let num = parseFloat(value);
-    if (!value || isNaN(num) || num <= 0) {
-      if (existing) this.api.deleteLeave(existing.id).subscribe(done); else this.saving.set(false);
-      return;
-    }
-    num = Math.min(this.maxLeave, Math.round(num * 100) / 100); // cap at 7.25
-    if (existing) {
-      this.api.updateLeave(existing.id, { hours: num }).subscribe(done); // resets to PENDING
-    } else {
-      this.api.createLeave({ userId: this.selectedUserId(), domainId, type, date, hours: num }).subscribe(done);
-    }
+    if (existing) this.api.updateLeave(existing.id, { hours }).subscribe(done); // resets to PENDING
+    else this.api.createLeave({ userId: this.selectedUserId(), domainId, type, date, hours }).subscribe(done);
   }
 
-  // ---- Remove rows (confirmed via in-app modal) ----
-  confirmState = signal<
-    | { kind: 'wbs'; row: WbsRow; title: string; message: string; detail: string }
-    | { kind: 'leave'; type: LeaveType; title: string; message: string; detail: string }
-    | null
-  >(null);
+  // ---- Reusable in-app modal (deletes + leave submission) ----
+  dialog = signal<{
+    title: string; message: string; detail?: string; confirmLabel: string;
+    danger: boolean; onConfirm: () => void; onCancel?: () => void;
+  } | null>(null);
+
+  runDialog(): void { const d = this.dialog(); this.dialog.set(null); d?.onConfirm(); }
+  closeDialog(): void { const d = this.dialog(); this.dialog.set(null); d?.onCancel?.(); }
 
   askRemoveWbs(row: WbsRow): void {
     const count = this.days().map((d) => this.entryFor(row.wbs.id, d)).filter(Boolean).length;
-    this.confirmState.set({
-      kind: 'wbs', row,
+    this.dialog.set({
       title: 'Delete charge code row?',
       message: `This will delete the entire ${row.wbs.code} — ${row.wbs.currentName} row for ${this.rangeLabel()}, including ${count} time ${count === 1 ? 'entry' : 'entries'} logged against it this week.`,
       detail: 'The whole record will be removed and this action cannot be undone.',
+      confirmLabel: 'Delete record', danger: true,
+      onConfirm: () => this.doRemoveWbs(row),
     });
   }
   askRemoveLeave(type: LeaveType): void {
     const label = this.leaveTypes.find((l) => l.type === type)?.label ?? 'leave';
     const count = this.days().map((d) => this.leaveFor(type, d)).filter(Boolean).length;
-    this.confirmState.set({
-      kind: 'leave', type,
+    this.dialog.set({
       title: 'Delete leave row?',
-      message: `This will delete the entire ${label} row for ${this.rangeLabel()}, including ${count} leave ${count === 1 ? 'request' : 'requests'} this week (approved or pending).`,
+      message: `This will delete the entire ${label} row for ${this.rangeLabel()}, including ${count} leave ${count === 1 ? 'request' : 'requests'} this week.`,
       detail: 'The whole record will be removed and this action cannot be undone.',
+      confirmLabel: 'Delete record', danger: true,
+      onConfirm: () => this.doRemoveLeave(type),
     });
   }
-  cancelConfirm(): void { this.confirmState.set(null); }
 
-  performConfirm(): void {
-    const state = this.confirmState();
-    if (!state) return;
-    this.confirmState.set(null);
+  private doRemoveWbs(row: WbsRow): void {
     this.saving.set(true);
-    if (state.kind === 'wbs') {
-      const row = state.row;
-      const toDelete = this.days().map((d) => this.entryFor(row.wbs.id, d)).filter((e): e is TimeEntry => !!e);
-      const after = () => {
-        const cur = { ...this.extraRows() };
-        cur[row.wbs.domainId] = (cur[row.wbs.domainId] ?? []).filter((id) => id !== row.wbs.id);
-        this.extraRows.set(cur);
-        this.saving.set(false); this.reload();
-      };
-      if (!toDelete.length) { after(); return; }
-      let done = 0;
-      toDelete.forEach((e) => this.api.deleteTimeEntry(e.id).subscribe(() => { if (++done === toDelete.length) after(); }));
-    } else {
-      const type = state.type;
-      const toDelete = this.days().map((d) => this.leaveFor(type, d)).filter((l): l is LeaveRequest => !!l);
-      const after = () => {
-        const s = new Set(this.extraLeave()); s.delete(type); this.extraLeave.set(s);
-        this.saving.set(false); this.reload();
-      };
-      if (!toDelete.length) { after(); return; }
-      let done = 0;
-      toDelete.forEach((l) => this.api.deleteLeave(l.id).subscribe(() => { if (++done === toDelete.length) after(); }));
-    }
+    const toDelete = this.days().map((d) => this.entryFor(row.wbs.id, d)).filter((e): e is TimeEntry => !!e);
+    const after = () => {
+      const cur = { ...this.extraRows() };
+      cur[row.wbs.domainId] = (cur[row.wbs.domainId] ?? []).filter((id) => id !== row.wbs.id);
+      this.extraRows.set(cur);
+      this.saving.set(false); this.reload();
+    };
+    if (!toDelete.length) { after(); return; }
+    let done = 0;
+    toDelete.forEach((e) => this.api.deleteTimeEntry(e.id).subscribe(() => { if (++done === toDelete.length) after(); }));
+  }
+  private doRemoveLeave(type: LeaveType): void {
+    this.saving.set(true);
+    const toDelete = this.days().map((d) => this.leaveFor(type, d)).filter((l): l is LeaveRequest => !!l);
+    const after = () => {
+      const s = new Set(this.extraLeave()); s.delete(type); this.extraLeave.set(s);
+      this.saving.set(false); this.reload();
+    };
+    if (!toDelete.length) { after(); return; }
+    let done = 0;
+    toDelete.forEach((l) => this.api.deleteLeave(l.id).subscribe(() => { if (++done === toDelete.length) after(); }));
   }
 
   // ---- Totals ----
