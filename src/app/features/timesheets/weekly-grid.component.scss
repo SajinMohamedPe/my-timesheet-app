@@ -24,44 +24,58 @@
 .save-btn.done { background: #2e7d32; }
 .save-btn mat-icon { font-size: 18px; width: 18px; height: 18px; }
 
-.gridscroll { border-top: 1px solid var(--dtt-line); overflow-x: auto; padding: 16px 18px 6px; }
-.sheetbody { min-width: 780px; display: flex; flex-direction: column; gap: 14px; }
+.gridscroll { border-top: 1px solid var(--dtt-line); overflow-x: auto; padding: 16px 18px; }
 
-/* Shared fixed column widths so every block lines up */
-table.wkt { width: 100%; border-collapse: collapse; table-layout: fixed; }
-.c-rh { width: 240px; }
-.c-day { width: 64px; }
-.c-wk { width: 78px; }
-
-/* Vertical grid lines separating the day columns (and the weekly column) */
-table.wkt th.c-day, table.wkt td.c-day,
-table.wkt th.c-wk, table.wkt td.c-wk { border-left: 1px solid var(--dtt-line-soft, #eef0f2); }
+/* ONE table for the whole sheet → columns are inherently aligned. */
+table.wk { width: 100%; min-width: 780px; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+col.c-rh { width: 240px; }
+col.c-day { width: 64px; }
+col.c-wk { width: 78px; }
+$soft: #eef0f2;
 
 /* Column header */
-table.wkt.head thead th { padding: 4px 6px 10px; font-size: 12px; color: var(--dtt-muted); font-weight: 600; }
-table.wkt.head th.c-rh { text-align: left; padding-left: 14px; }
-table.wkt.head th.c-day { text-align: center; }
-table.wkt.head th.c-day .dn { font-size: 15px; font-weight: 700; color: var(--dtt-ink); }
-table.wkt.head th.c-day .dl { font-size: 11px; }
-table.wkt.head th.c-wk { text-align: center; }
+thead th { padding: 4px 6px 12px; font-size: 12px; color: var(--dtt-muted); font-weight: 600; vertical-align: bottom; }
+thead th.c-rh { text-align: left; padding-left: 14px; }
+thead th.c-day { text-align: center; border-left: 1px solid var(--dtt-line-soft, #{$soft}); }
+thead th.c-day .dn { font-size: 15px; font-weight: 700; color: var(--dtt-ink); }
+thead th.c-day .dl { font-size: 11px; }
+thead th.c-wk { text-align: center; border-left: 1px solid var(--dtt-line-soft, #{$soft}); }
 
-/* Blocks — outline via box-shadow (not border) so the inner table's columns
-   line up exactly with the shared header row. */
-.block { box-shadow: 0 0 0 1px var(--dtt-line); border-radius: 11px; overflow: hidden; background: #fff; }
-.block-h {
-  display: flex; align-items: center; gap: 8px; width: 100%; border: none; cursor: pointer; text-align: left;
-  padding: 10px 14px; background: #f0f4e8; color: var(--dtt-green-dark);
-  font-weight: 700; font-size: 14px; font-family: inherit;
-}
-.block.abs .block-h { background: #eef0f2; color: #555; }
+/* Gaps between blocks */
+tbody.gap td { height: 14px; padding: 0; border: none; background: transparent; }
+
+/* Group blocks: bordered + rounded, drawn with separate borders */
+tbody.grp td { background: #fff; }
+tbody.grp tr.datarow td, tbody.grp tr.addrow td { border-bottom: 1px solid var(--dtt-line-soft, #{$soft}); }
+tbody.grp tr:first-child > td { border-top: 1px solid var(--dtt-line); }
+tbody.grp tr:last-child > td { border-bottom: 1px solid var(--dtt-line); }
+tbody.grp td:first-child { border-left: 1px solid var(--dtt-line); }
+tbody.grp td:last-child { border-right: 1px solid var(--dtt-line); }
+tbody.grp tr:first-child > td:first-child { border-top-left-radius: 11px; }
+tbody.grp tr:first-child > td:last-child { border-top-right-radius: 11px; }
+tbody.grp tr:last-child > td:first-child { border-bottom-left-radius: 11px; }
+tbody.grp tr:last-child > td:last-child { border-bottom-right-radius: 11px; }
+
+/* Vertical grid lines inside data/add rows */
+tbody.grp tr.datarow td.c-day, tbody.grp tr.datarow td.c-wk,
+tbody.grp tr.addrow td.c-day, tbody.grp tr.addrow td.c-wk { border-left: 1px solid var(--dtt-line-soft, #{$soft}); }
+
+/* Group header row */
+tr.grouprow > td { background: #f0f4e8; padding: 0; }
+tbody.grp.abs tr.grouprow > td { background: #eef0f2; }
+td.grouphead { padding: 0; }
+.block-h { display: flex; align-items: center; gap: 8px; width: 100%; border: none; cursor: pointer; text-align: left;
+  padding: 11px 14px; background: transparent; color: var(--dtt-green-dark); font-weight: 700; font-size: 14px; font-family: inherit; }
+.abs .block-h { color: #555; }
 .block-h .caret { font-size: 20px; width: 20px; height: 20px; }
 .block-h .bi { font-size: 18px; width: 18px; height: 18px; }
 .block-h .bname { font-weight: 700; }
 .block-h .bdesc { font-weight: 400; opacity: .8; font-size: 13px; }
-.block-h .btot { font-variant-numeric: tabular-nums; font-size: 13px; }
+td.c-wk.grouptot { text-align: center; font-weight: 700; font-size: 13px; color: var(--dtt-green-dark);
+  font-variant-numeric: tabular-nums; border-left: 1px solid #d9e4c4; }
+tbody.grp.abs td.c-wk.grouptot { color: #555; border-left-color: #dfe2e6; }
 
-/* Rows */
-.block table.wkt td { border-top: 1px solid var(--dtt-line-soft, #eef0f2); }
+/* Data cells */
 td.c-rh { text-align: left; padding: 8px 14px; }
 .rowhead-inner { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 td.c-rh .code { font-weight: 700; font-size: 13px; }
@@ -71,30 +85,32 @@ td.c-rh .desc { font-size: 13px; color: var(--dtt-ink); font-weight: 600; }
 .rm mat-icon { font-size: 19px; width: 19px; height: 19px; }
 
 td.c-day { padding: 2px; text-align: center; }
-td.c-day.cell input {
-  width: 100%; max-width: 60px; padding: 8px 2px; text-align: center; border: 1px solid transparent;
-  border-radius: 6px; font-size: 14px; font-weight: 700; background: transparent; color: var(--dtt-ink);
-}
+td.c-day.cell input { width: 100%; max-width: 60px; padding: 8px 2px; text-align: center; border: 1px solid transparent;
+  border-radius: 6px; font-size: 14px; font-weight: 700; background: transparent; color: var(--dtt-ink); }
 td.c-day.cell input:hover { border-color: var(--dtt-line); }
 td.c-day.cell input:focus { outline: none; border-color: var(--dtt-green); background: #fff; }
-.weekend { background: #f4f6f8; }
+tbody.grp tr.datarow td.c-day.weekend, tbody.grp tr.addrow td.c-day.weekend { background: #f4f6f8; }
 
 /* Leave cells: black + bold, pending amber background */
-td.c-day.leave.pending  { background: #ffe9bf; box-shadow: inset 3px 0 0 #f5a623; }
-td.c-day.leave.pending input:focus { background: #fffaf0; }
-td.c-day.leave.approved { box-shadow: inset 3px 0 0 #86bc25; }
-td.c-day.leave.rejected { box-shadow: inset 3px 0 0 #e53935; }
-td.c-day.leave.rejected input { text-decoration: line-through; }
+tbody.grp td.c-day.leave.pending  { background: #ffe9bf; box-shadow: inset 3px 0 0 #f5a623; }
+tbody.grp td.c-day.leave.pending input:focus { background: #fffaf0; }
+tbody.grp td.c-day.leave.approved { box-shadow: inset 3px 0 0 #86bc25; }
+tbody.grp td.c-day.leave.rejected { box-shadow: inset 3px 0 0 #e53935; }
+tbody.grp td.c-day.leave.rejected input { text-decoration: line-through; }
 .leave-label { font-weight: 700; color: var(--dtt-ink); }
 
 td.c-wk.total { text-align: center; font-weight: 700; color: var(--dtt-ink); font-variant-numeric: tabular-nums; }
 .addrow td { padding: 8px 14px; }
 
-/* Daily total strip */
-table.wkt.totalstrip { background: #fafbf7; box-shadow: 0 0 0 1px var(--dtt-line); border-radius: 11px; overflow: hidden; }
-table.wkt.totalstrip td { padding: 12px 6px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
-table.wkt.totalstrip td.c-rh { text-align: left; padding-left: 14px; }
-table.wkt.totalstrip td.c-wk.grand { color: var(--dtt-green-dark); font-size: 15px; }
+/* Daily total block */
+tbody.totalsec td { background: #fafbf7; padding: 12px 6px; text-align: center; font-weight: 700;
+  font-variant-numeric: tabular-nums; border-top: 1px solid var(--dtt-line); border-bottom: 1px solid var(--dtt-line); }
+tbody.totalsec td.c-day, tbody.totalsec td.c-wk { border-left: 1px solid var(--dtt-line-soft, #{$soft}); }
+tbody.totalsec td:first-child { border-left: 1px solid var(--dtt-line); text-align: left; padding-left: 14px;
+  border-top-left-radius: 11px; border-bottom-left-radius: 11px; }
+tbody.totalsec td:last-child { border-right: 1px solid var(--dtt-line);
+  border-top-right-radius: 11px; border-bottom-right-radius: 11px; }
+td.c-wk.grand { color: var(--dtt-green-dark); font-size: 15px; }
 
 .hint { padding: 12px 20px 16px; }
 .small { font-size: 12px; }
