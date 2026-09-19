@@ -8,6 +8,7 @@ import * as XLSX from 'xlsx';
 import { AuthService } from '../../core/services/auth.service';
 import { DomainContextService } from '../../core/services/domain-context.service';
 import { ApiService, UploadedRow, VisibilityPlan } from '../../core/services/api.service';
+import { currentMonth } from '../../core/util/dates';
 import { ExportService } from '../../core/services/export.service';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { LeaveType } from '../../core/models/models';
@@ -40,7 +41,7 @@ export class VisibilityComponent implements OnInit {
 
   tab = signal<Tab>('LIVE');
   showLegend = signal(true);
-  month = signal(new Date().toISOString().slice(0, 7)); // YYYY-MM
+  month = signal(currentMonth()); // YYYY-MM
   plan = signal<VisibilityPlan | null>(null);
   uploaded = signal<UploadedRow[]>([]);
   busy = signal('');
@@ -78,7 +79,8 @@ export class VisibilityComponent implements OnInit {
   private shiftMonth(n: number): void {
     const [y, m] = this.month().split('-').map(Number);
     const d = new Date(y, m - 1 + n, 1);
-    this.month.set(d.toISOString().slice(0, 7));
+    // Local parts, NOT toISOString (which shifts the month in +UTC timezones).
+    this.month.set(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
   }
 
   isWeekend(d: Date): boolean { const g = d.getDay(); return g === 0 || g === 6; }

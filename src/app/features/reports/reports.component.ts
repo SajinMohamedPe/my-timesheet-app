@@ -6,6 +6,7 @@ import { DomainContextService } from '../../core/services/domain-context.service
 import { ApiService, EmployeeReport } from '../../core/services/api.service';
 import { ExportService } from '../../core/services/export.service';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { currentMonth } from '../../core/util/dates';
 import { User } from '../../core/models/models';
 
 @Component({
@@ -69,7 +70,7 @@ export class ReportsComponent implements OnInit {
 
   users = signal<User[]>([]);
   selected = 'ALL';
-  month = new Date().toISOString().slice(0, 7);
+  month = currentMonth();
   busy = signal('');
 
   constructor() { effect(() => { this.ctx.selectedId(); this.load(); }); }

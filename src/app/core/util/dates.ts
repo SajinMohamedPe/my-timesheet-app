@@ -1,5 +1,11 @@
 // Week runs Sunday -> Saturday (matches the SAP reference & calendar screenshots).
 
+/** Current month as local YYYY-MM (not UTC). */
+export function currentMonth(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
 export function isoDate(d: Date): string {
   // Local Y-M-D (NOT toISOString, which converts to UTC and can shift the day).
   const y = d.getFullYear();

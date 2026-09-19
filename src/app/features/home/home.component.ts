@@ -5,6 +5,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { DomainContextService } from '../../core/services/domain-context.service';
 import { ApiService } from '../../core/services/api.service';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { currentMonth } from '../../core/util/dates';
 import { LeaveRequest, TimeEntry } from '../../core/models/models';
 import { effect } from '@angular/core';
 
@@ -78,7 +79,7 @@ export class HomeComponent implements OnInit {
   private entries = signal<TimeEntry[]>([]);
   private leaves = signal<LeaveRequest[]>([]);
   private team = signal(0);
-  private month = new Date().toISOString().slice(0, 7);
+  private month = currentMonth();
 
   constructor() {
     // Reload when the selected domain changes.
