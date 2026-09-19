@@ -83,18 +83,23 @@ export class SearchSelectComponent {
 
   toggle(ev: Event) {
     ev.stopPropagation();
-    this.open.set(!this.open());
-    if (this.open()) {
-      this.query.set('');
-      const btn = this.host.nativeElement.querySelector('.trigger') as HTMLElement;
-      const r = btn.getBoundingClientRect();
-      // Flip upward if there isn't room below.
-      const estHeight = 300;
-      const below = window.innerHeight - r.bottom;
-      this.popLeft.set(Math.min(r.left, window.innerWidth - 340));
-      this.popTop.set(below < estHeight ? Math.max(8, r.top - estHeight) : r.bottom + 6);
-      setTimeout(() => this.host.nativeElement.querySelector('input')?.focus(), 0);
-    }
+    const willOpen = !this.open();
+    this.open.set(willOpen);
+    if (!willOpen) return;
+    this.query.set('');
+    const btn = (this.host.nativeElement.querySelector('.trigger') as HTMLElement).getBoundingClientRect();
+    // Anchor directly under the button, left-aligned, clamped to the viewport.
+    this.popLeft.set(Math.max(8, Math.min(btn.left, window.innerWidth - 328)));
+    this.popTop.set(btn.bottom + 4);
+    // After it renders, measure real height and flip up if it would overflow.
+    requestAnimationFrame(() => {
+      const pop = this.host.nativeElement.querySelector('.pop') as HTMLElement | null;
+      if (pop) {
+        const h = pop.offsetHeight;
+        if (btn.bottom + h > window.innerHeight - 8) this.popTop.set(Math.max(8, btn.top - h - 4));
+      }
+      this.host.nativeElement.querySelector('input')?.focus();
+    });
   }
   close() { this.open.set(false); this.query.set(''); }
   choose(o: SelectOption) { this.pick.emit(o.value); this.close(); }

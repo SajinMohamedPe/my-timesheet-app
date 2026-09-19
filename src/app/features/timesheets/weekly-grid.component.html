@@ -1,4 +1,4 @@
-<dtt-page-header icon="grid_on" title="Time Tracking" crumb="Time Tracking · Weekly Timesheet" />
+<dtt-page-header icon="grid_on" title="Timesheets" crumb="Time Tracking · Weekly Timesheet" />
 
 <div class="card sheet">
   <div class="toolbar">
@@ -12,9 +12,13 @@
     }
     <span class="spacer"></span>
     <div class="weeknav">
-      <button (click)="prevWeek()"><mat-icon>chevron_left</mat-icon></button>
-      <span class="range">{{ rangeLabel() }}</span>
-      <button (click)="nextWeek()"><mat-icon>chevron_right</mat-icon></button>
+      <button (click)="prevWeek()" title="Previous week"><mat-icon>chevron_left</mat-icon></button>
+      <button class="rangebtn" (click)="wp.open()" title="Pick a week">
+        <mat-icon>calendar_month</mat-icon><span class="range">{{ rangeLabel() }}</span>
+      </button>
+      <button (click)="nextWeek()" title="Next week"><mat-icon>chevron_right</mat-icon></button>
+      <input class="hiddendate" [matDatepicker]="wp" (dateChange)="pickWeek($event.value)" />
+      <mat-datepicker #wp></mat-datepicker>
     </div>
     <div class="wtotal">
       <div class="v">{{ fmtTotal(weekTotal()) || '0.00' }}<span>h</span></div>

@@ -2,6 +2,8 @@ import { Component, computed, effect, inject, OnInit, signal } from '@angular/co
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { provideNativeDateAdapter } from '@angular/material/core';
 import { forkJoin } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { DomainContextService } from '../../core/services/domain-context.service';
@@ -31,7 +33,8 @@ const LEAVE_KEY: Record<LeaveType, string> = {
 
 @Component({
   selector: 'dtt-weekly-grid',
-  imports: [FormsModule, MatIconModule, MatMenuModule, PageHeaderComponent, SearchSelectComponent, ConfirmDialogComponent],
+  imports: [FormsModule, MatIconModule, MatMenuModule, MatDatepickerModule, PageHeaderComponent, SearchSelectComponent, ConfirmDialogComponent],
+  providers: [provideNativeDateAdapter()],
   templateUrl: './weekly-grid.component.html',
   styleUrl: './weekly-grid.component.scss',
 })
@@ -106,6 +109,8 @@ export class WeeklyGridComponent implements OnInit {
   }
   prevWeek(): void { this.weekAnchor.set(addDays(this.weekAnchor(), -7)); this.reload(); }
   nextWeek(): void { this.weekAnchor.set(addDays(this.weekAnchor(), 7)); this.reload(); }
+  /** Jump to the week containing any picked date. */
+  pickWeek(d: Date | null): void { if (d) { this.weekAnchor.set(weekStart(d)); this.reload(); } }
   isWeekend = isWeekend;
 
   /**

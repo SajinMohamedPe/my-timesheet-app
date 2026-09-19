@@ -6,9 +6,14 @@
 .field select { padding: 8px 10px; border: 1px solid var(--dtt-line); border-radius: 8px; font-size: 14px; min-width: 200px; }
 .spacer { flex: 1; }
 
-.weeknav { display: flex; align-items: center; gap: 10px; }
-.weeknav button { border: 1px solid var(--dtt-line); background: #fff; border-radius: 8px; cursor: pointer; padding: 4px; display: flex; }
-.weeknav .range { font-weight: 600; min-width: 220px; text-align: center; }
+.weeknav { display: flex; align-items: center; gap: 8px; position: relative; }
+.weeknav button { border: 1px solid var(--dtt-line); background: #fff; border-radius: 8px; cursor: pointer; padding: 6px; display: flex; align-items: center; }
+.weeknav button:hover { border-color: var(--dtt-green); }
+.rangebtn { gap: 8px; padding: 6px 12px !important; }
+.rangebtn mat-icon { font-size: 18px; width: 18px; height: 18px; color: var(--dtt-muted); }
+.weeknav .range { font-weight: 600; min-width: 190px; text-align: center; }
+/* datepicker input is invisible; the calendar opens anchored to the weeknav */
+.hiddendate { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; bottom: 0; left: 50%; }
 .wtotal { text-align: right; }
 .wtotal .v { font-size: 22px; font-weight: 700; color: var(--dtt-green-dark); }
 .wtotal .v span { font-size: 14px; }
