@@ -7,24 +7,35 @@ import { provideNativeDateAdapter } from '@angular/material/core';
 import * as XLSX from 'xlsx';
 import { AuthService } from '../../core/services/auth.service';
 import { DomainContextService } from '../../core/services/domain-context.service';
-import { ApiService, UploadedRow, VisibilityPlan } from '../../core/services/api.service';
-import { currentMonth, isIrishBankHoliday, BANK_HOLIDAY_HOURS } from '../../core/util/dates';
+import { ApiService, UploadedRow, VisibilityPlan, WbsCodeView } from '../../core/services/api.service';
+import { currentMonth, isIrishBankHoliday, BANK_HOLIDAY_HOURS, isoDate } from '../../core/util/dates';
 import { ExportService } from '../../core/services/export.service';
 import { PageHeaderComponent } from '../../shared/page-header.component';
-import { LeaveType } from '../../core/models/models';
+import { LeaveType, LeaveRequest, TimeEntry } from '../../core/models/models';
 
 type Tab = 'LIVE' | 'UPLOADED' | 'DIFF';
 
 interface Cell {
   label: string;
-  kind: 'work' | 'leave' | 'bank' | 'empty' | 'pending';
+  kind: 'work' | 'leave' | 'bank' | 'empty' | 'pending' | 'mixed';
   type?: LeaveType;
+  total: number;
+  over8: boolean;
 }
 interface DiffRow { name: string; wbsCode: string; project: string; app: number; uploaded: number; delta: number; }
+interface DaySel { userId: string; name: string; iso: string; label: string; }
 
 const LEAVE_COLORS: Record<LeaveType, string> = {
   ANNUAL: 'annual', SICK: 'sick', TRAINING: 'training', INTERNAL: 'internal', BANK_HOLIDAY: 'bank',
 };
+const LEAVE_HEX: Record<LeaveType, string> = {
+  ANNUAL: '#e53935', SICK: '#ab30c4', TRAINING: '#f4b400', INTERNAL: '#1976d2', BANK_HOLIDAY: '#607d8b',
+};
+const LEAVE_LABELS: Record<LeaveType, string> = {
+  ANNUAL: 'Annual Leave', SICK: 'Sick Leave', TRAINING: 'Deloitte Training',
+  INTERNAL: 'Internal / All-Hands / Gems', BANK_HOLIDAY: 'Bank Holiday',
+};
+const MAX_DAY_HOURS = 8;
 
 @Component({
   selector: 'dtt-visibility',
@@ -44,7 +55,9 @@ export class VisibilityComponent implements OnInit {
   month = signal(currentMonth()); // YYYY-MM
   plan = signal<VisibilityPlan | null>(null);
   uploaded = signal<UploadedRow[]>([]);
+  wbs = signal<WbsCodeView[]>([]);
   busy = signal('');
+  daySel = signal<DaySel | null>(null); // admin edit modal target
 
   monthLabel = computed(() => {
     const [y, m] = this.month().split('-').map(Number);
@@ -66,6 +79,7 @@ export class VisibilityComponent implements OnInit {
     this.api.getVisibility(domainId, this.month()).subscribe((p) => this.plan.set(p));
     if (this.auth.isAdmin()) {
       this.api.getUploads(domainId, this.month()).subscribe((u) => this.uploaded.set(u));
+      this.api.getWbs(domainId ?? undefined).subscribe((w) => this.wbs.set(w));
     }
   }
 
@@ -86,37 +100,107 @@ export class VisibilityComponent implements OnInit {
   isWeekend(d: Date): boolean { const g = d.getDay(); return g === 0 || g === 6; }
 
   cell(userId: string, day: Date): Cell {
-    const iso = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+    const iso = isoDate(day);
+    const empty: Cell = { label: '', kind: 'empty', total: 0, over8: false };
     const p = this.plan();
-    if (!p) return { label: '', kind: 'empty' };
+    if (!p) return empty;
     const row = p.rows.find((r) => r.userId === userId);
-    if (!row) return { label: '', kind: 'empty' };
-    const leave = row.leaves.find((l) => l.date === iso && l.status !== 'REJECTED');
-    if (leave) {
-      return {
-        label: this.hlabel(leave.hours),   // always show the hours
-        kind: leave.status === 'PENDING' ? 'pending' : 'leave',
-        type: leave.type,
-      };
+    if (!row) return empty;
+
+    // Include BOTH work and leave (no override), so overallocation is visible.
+    const work = row.entries.filter((e) => e.date === iso).reduce((s, e) => s + e.hours, 0);
+    const activeLeaves = row.leaves.filter((l) => l.date === iso && l.status !== 'REJECTED');
+    let leaveHrs = activeLeaves.reduce((s, l) => s + (l.hours || 0), 0);
+    const autoBank = isIrishBankHoliday(day) && !activeLeaves.some((l) => l.type === 'BANK_HOLIDAY');
+    if (autoBank) leaveHrs += BANK_HOLIDAY_HOURS;
+    const total = Math.round((work + leaveHrs) * 100) / 100;
+    const over8 = total > MAX_DAY_HOURS;
+
+    if (total <= 0) {
+      if (this.isWeekend(day)) return { ...empty, kind: 'bank' };
+      return empty;
     }
-    const hrs = row.entries.filter((e) => e.date === iso).reduce((s, e) => s + e.hours, 0);
-    if (hrs > 0) return { label: this.hlabel(hrs), kind: 'work' };
-    // Irish public holidays are marked by default (weekdays get the 7.25h label).
-    if (isIrishBankHoliday(day)) return { label: this.hlabel(BANK_HOLIDAY_HOURS), kind: 'bank' };
-    if (this.isWeekend(day)) return { label: '', kind: 'bank' };
-    return { label: '', kind: 'empty' };
+    const firstLeave = activeLeaves[0];
+    const leaveType: LeaveType | undefined = firstLeave?.type ?? (autoBank ? 'BANK_HOLIDAY' : undefined);
+    const pending = firstLeave?.status === 'PENDING';
+    let kind: Cell['kind'];
+    if (work > 0 && leaveHrs > 0) kind = 'mixed';
+    else if (work > 0) kind = 'work';
+    else kind = pending ? 'pending' : (leaveType === 'BANK_HOLIDAY' ? 'bank' : 'leave');
+    return { label: this.hlabel(total), kind, type: leaveType, total, over8 };
   }
   /** Compact hours label: 8 -> "8h", 7.25 -> "7.25h", 7.5 -> "7.5h". */
   private hlabel(n: number): string {
     return (Number.isInteger(n) ? String(n) : String(+n.toFixed(2))) + 'h';
   }
   cellClass(c: Cell): string {
+    if (c.kind === 'mixed') return 'mixed';
     if (c.kind === 'work') return 'work';
     if (c.kind === 'bank') return 'bank';
     if (c.kind === 'pending') return 'pending';
     if (c.kind === 'leave' && c.type) return LEAVE_COLORS[c.type];
     return 'empty';
   }
+  /** Diagonal split (work green + leave colour) for mixed cells. */
+  cellBg(c: Cell): string {
+    if (c.kind === 'mixed') {
+      const hex = c.type ? LEAVE_HEX[c.type] : '#607d8b';
+      return `linear-gradient(135deg, #7cb518 0 52%, ${hex} 52% 100%)`;
+    }
+    return '';
+  }
+  rowOver8(userId: string): boolean {
+    return this.daysInMonth().some((d) => this.cell(userId, d).over8);
+  }
+
+  // ---- Admin day-edit modal ----
+  openDay(userId: string, name: string, day: Date): void {
+    if (!this.auth.isAdmin()) return;
+    this.daySel.set({
+      userId, name, iso: isoDate(day),
+      label: day.toLocaleDateString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+    });
+  }
+  closeDay(): void { this.daySel.set(null); }
+
+  dayEntries = computed<TimeEntry[]>(() => {
+    const d = this.daySel(); if (!d) return [];
+    const row = this.plan()?.rows.find((r) => r.userId === d.userId);
+    return row ? row.entries.filter((e) => e.date === d.iso) : [];
+  });
+  dayLeaves = computed<LeaveRequest[]>(() => {
+    const d = this.daySel(); if (!d) return [];
+    const row = this.plan()?.rows.find((r) => r.userId === d.userId);
+    return row ? row.leaves.filter((l) => l.date === d.iso) : [];
+  });
+  autoBankInModal(): boolean {
+    const d = this.daySel(); if (!d) return false;
+    const day = new Date(d.iso + 'T00:00:00');
+    return isIrishBankHoliday(day) && !this.dayLeaves().some((l) => l.type === 'BANK_HOLIDAY' && l.status !== 'REJECTED');
+  }
+  daySelTotal = computed(() => {
+    const w = this.dayEntries().reduce((s, e) => s + e.hours, 0);
+    const l = this.dayLeaves().filter((x) => x.status !== 'REJECTED').reduce((s, x) => s + (x.hours || 0), 0);
+    const auto = this.autoBankInModal() ? BANK_HOLIDAY_HOURS : 0;
+    return Math.round((w + l + auto) * 100) / 100;
+  });
+
+  wbsCode(id: string): string { return this.wbs().find((w) => w.id === id)?.code ?? id; }
+  wbsName(id: string): string { return this.wbs().find((w) => w.id === id)?.currentName ?? ''; }
+  leaveLabel(t: LeaveType): string { return LEAVE_LABELS[t]; }
+
+  saveEntryHours(e: TimeEntry, val: string): void {
+    const h = parseFloat(val); if (isNaN(h) || h < 0) return;
+    this.api.updateTimeEntry(e.id, { hours: h }).subscribe(() => this.load());
+  }
+  removeEntry(e: TimeEntry): void { this.api.deleteTimeEntry(e.id).subscribe(() => this.load()); }
+  saveLeaveHours(l: LeaveRequest, val: string): void {
+    const h = parseFloat(val); if (isNaN(h) || h <= 0) return;
+    this.api.updateLeave(l.id, { hours: h }).subscribe(() => this.load());
+  }
+  removeLeaveRec(l: LeaveRequest): void { this.api.deleteLeave(l.id).subscribe(() => this.load()); }
+  approveLeaveRec(l: LeaveRequest): void { this.api.approveLeave(l.id).subscribe(() => this.load()); }
+  rejectLeaveRec(l: LeaveRequest): void { this.api.rejectLeave(l.id).subscribe(() => this.load()); }
 
   // ---- Differences ----
   diffRows = computed<DiffRow[]>(() => {

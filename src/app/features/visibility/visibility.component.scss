@@ -33,6 +33,38 @@
 .bank { background: #607d8b; }
 .pending { background: repeating-linear-gradient(45deg, #f5a623, #f5a623 5px, #ffe4b5 5px, #ffe4b5 10px); }
 table.plan td.cell.pending { color: #6b4e00; }
+table.plan td.cell.mixed { color: #fff; }
+/* Over-8h highlight: red ring + bold so the admin can spot overallocation */
+table.plan td.cell.over8 { box-shadow: inset 0 0 0 2px #e53935; font-weight: 800; position: relative; z-index: 1; }
+table.plan td.cell.clickable { cursor: pointer; }
+table.plan td.cell.clickable:hover { filter: brightness(1.06); outline: 2px solid var(--dtt-green); outline-offset: -2px; }
+/* Employee name flagged when any day is over 8h */
+table.plan td.emp.warn { color: #b4322f; font-weight: 700; }
+.warnico { color: #e53935; font-size: 16px; width: 16px; height: 16px; vertical-align: middle; margin-left: 4px; }
+
+/* ---- Admin day-edit modal ---- */
+.backdrop { position: fixed; inset: 0; background: rgba(20,22,24,.45); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.daymodal { background: var(--dtt-card); border-radius: 14px; width: 480px; max-width: 100%; box-shadow: 0 24px 60px rgba(0,0,0,.28); padding: 20px 22px; max-height: 86vh; overflow: auto; }
+.m-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.m-head h3 { margin: 0; font-size: 19px; }
+.x { border: none; background: transparent; cursor: pointer; color: var(--dtt-muted); display: flex; padding: 4px; border-radius: 6px; }
+.x:hover { background: var(--dtt-line); }
+.m-total { margin: 14px 0 6px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.m-total.over { color: #b4322f; }
+.m-sec { margin-top: 14px; border-top: 1px solid var(--dtt-line); padding-top: 12px; }
+.m-sec-h { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--dtt-muted); margin-bottom: 8px; font-weight: 700; }
+.m-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+.m-lbl { flex: 1; font-size: 13px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.m-inp { width: 70px; padding: 7px 8px; border: 1px solid var(--dtt-line); border-radius: 8px; font-size: 14px; font-weight: 700; text-align: center; }
+.m-inp:disabled { background: var(--dtt-line-soft, #eef0f2); color: var(--dtt-muted); }
+.unit { color: var(--dtt-muted); font-size: 12px; margin-left: -4px; }
+.m-del, .m-appr, .m-rej { border: none; background: transparent; cursor: pointer; display: flex; padding: 4px; border-radius: 6px; }
+.m-del { color: #c2c6ca; } .m-del:hover { color: #b4322f; background: #fdeceb; }
+.m-appr { color: var(--dtt-green-dark); } .m-appr:hover { background: var(--dtt-green-tint, #eef4e0); }
+.m-rej { color: #b4322f; } .m-rej:hover { background: #fdeceb; }
+.m-del mat-icon, .m-appr mat-icon, .m-rej mat-icon { font-size: 18px; width: 18px; height: 18px; }
+.m-foot { display: flex; justify-content: flex-end; margin-top: 18px; }
+.m-foot .btn.green { background: var(--dtt-green); color: #fff; border: none; border-radius: 9px; padding: 9px 18px; font-weight: 700; cursor: pointer; }
 .empty { background: transparent; }
 table.plan td.cell.training { color: #4a3600; }
 table.plan td.cell { font-weight: 700; }

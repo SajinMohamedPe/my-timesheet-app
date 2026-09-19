@@ -236,6 +236,8 @@ JWT claims: `sub`=userId, `role`, `domainIds` (array), plus standard `exp`/`iat`
   ```jsonc
   { "month":"2026-09", "rows":[ { "userId","name","entries":TimeEntry[], "leaves":LeaveRequest[] } ] }
   ```
+  The frontend now shows **both** work and leave for a day (they are not mutually exclusive) and computes a **day total = work hours + non-rejected leave hours (+ 7.25 for an auto Irish bank holiday)**. Any day whose total **exceeds 8h** is highlighted and the employee's name flagged so an admin can inspect overallocation. **Admins can click a day cell to open an edit modal** for that person/day; it edits the underlying records via the existing endpoints — `PUT`/`DELETE /api/time-entries/{id}` and `PUT`/`DELETE /api/leave/{id}` plus `approve`/`reject`. No new endpoints are required; the server must keep honouring those for an in-scope admin acting on another user (audited).
+
   Admins get all in-scope users; employees get **only themselves but across ALL their own domains** (an employee's row must include entries/leave from every domain they belong to — the frontend does not pass `domainId` for employees, and if it did the server must still not hide the employee's own other-domain rows). Frontend colours cells (work / leave type / bank holiday / pending) and auto-marks weekends as Bank Holiday. **Cell display rules the frontend applies (backend just returns the data):** leave takes priority over work on a given day; every non-empty cell shows its hours; leave that is `PENDING` renders as the "Pending" state until approved, then as its leave-type colour.
 
 ### 4.8 Uploads (reconciliation)

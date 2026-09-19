@@ -75,10 +75,16 @@
           <tbody>
             @for (r of plan()?.rows ?? []; track r.userId) {
               <tr>
-                <td class="emp"><span class="ava">{{ r.name[0] }}</span> {{ r.name }}</td>
+                <td class="emp" [class.warn]="rowOver8(r.userId)">
+                  <span class="ava">{{ r.name[0] }}</span> {{ r.name }}
+                  @if (rowOver8(r.userId)) { <mat-icon class="warnico" title="Has a day over 8h — click a cell to inspect">warning</mat-icon> }
+                </td>
                 @for (d of daysInMonth(); track $index) {
                   @let c = cell(r.userId, d);
-                  <td class="cell {{ cellClass(c) }}" [class.weekend]="isWeekend(d)" [title]="c.type ?? c.kind">{{ c.label }}</td>
+                  <td class="cell {{ cellClass(c) }}" [class.weekend]="isWeekend(d)" [class.over8]="c.over8"
+                      [class.clickable]="auth.isAdmin()" [style.background]="cellBg(c)"
+                      [title]="c.over8 ? ('Over 8h — ' + c.label) : (c.type ?? c.kind)"
+                      (click)="openDay(r.userId, r.name, d)">{{ c.label }}</td>
                 }
               </tr>
             }
@@ -130,3 +136,55 @@
     }
   </div>
 </div>
+
+@if (daySel(); as ds) {
+  <div class="backdrop" (click)="closeDay()">
+    <div class="daymodal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <div class="m-head">
+        <div><h3>{{ ds.name }}</h3><div class="muted small">{{ ds.label }}</div></div>
+        <button class="x" (click)="closeDay()"><mat-icon>close</mat-icon></button>
+      </div>
+
+      <div class="m-total" [class.over]="daySelTotal() > 8">
+        Day total: <b>{{ daySelTotal().toFixed(2) }}h</b>
+        @if (daySelTotal() > 8) { <span class="chip red">Over 8h — please review</span> }
+      </div>
+
+      <div class="m-sec">
+        <div class="m-sec-h">Time entries</div>
+        @for (e of dayEntries(); track e.id) {
+          <div class="m-row">
+            <div class="m-lbl"><b>{{ wbsCode(e.wbsCodeId) }}</b> <span class="muted">{{ wbsName(e.wbsCodeId) }}</span></div>
+            <input class="m-inp" type="number" min="0" step="0.25" [value]="e.hours"
+              (change)="saveEntryHours(e, $any($event.target).value)" /><span class="unit">h</span>
+            <button class="m-del" title="Delete entry" (click)="removeEntry(e)"><mat-icon>delete_outline</mat-icon></button>
+          </div>
+        }
+        @if (!dayEntries().length) { <div class="muted small">No time entries.</div> }
+      </div>
+
+      <div class="m-sec">
+        <div class="m-sec-h">Leave</div>
+        @for (l of dayLeaves(); track l.id) {
+          <div class="m-row">
+            <div class="m-lbl"><b>{{ leaveLabel(l.type) }}</b>
+              <span class="chip" [class.amber]="l.status==='PENDING'" [class.green]="l.status==='APPROVED'" [class.red]="l.status==='REJECTED'">{{ l.status }}</span>
+            </div>
+            <input class="m-inp" type="number" min="0" step="0.25" [value]="l.hours"
+              [disabled]="l.type==='BANK_HOLIDAY'"
+              (change)="saveLeaveHours(l, $any($event.target).value)" /><span class="unit">h</span>
+            @if (l.status==='PENDING') {
+              <button class="m-appr" title="Approve" (click)="approveLeaveRec(l)"><mat-icon>check</mat-icon></button>
+              <button class="m-rej" title="Reject" (click)="rejectLeaveRec(l)"><mat-icon>close</mat-icon></button>
+            }
+            <button class="m-del" title="Delete leave" (click)="removeLeaveRec(l)"><mat-icon>delete_outline</mat-icon></button>
+          </div>
+        }
+        @if (autoBankInModal()) { <div class="muted small">Irish bank holiday — 7.25h applied automatically.</div> }
+        @if (!dayLeaves().length && !autoBankInModal()) { <div class="muted small">No leave.</div> }
+      </div>
+
+      <div class="m-foot"><button class="btn green" (click)="closeDay()">Done</button></div>
+    </div>
+  </div>
+}
