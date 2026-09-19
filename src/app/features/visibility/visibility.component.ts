@@ -60,7 +60,8 @@ export class VisibilityComponent implements OnInit {
   ngOnInit(): void { this.load(); }
 
   private load(): void {
-    const domainId = this.ctx.selectedId();
+    // Admins scope to the active domain; an employee sees ALL their own domains.
+    const domainId = this.auth.isAdmin() ? this.ctx.selectedId() : null;
     this.api.getVisibility(domainId, this.month()).subscribe((p) => this.plan.set(p));
     if (this.auth.isAdmin()) {
       this.api.getUploads(domainId, this.month()).subscribe((u) => this.uploaded.set(u));
@@ -91,16 +92,19 @@ export class VisibilityComponent implements OnInit {
     const leave = row.leaves.find((l) => l.date === iso && l.status !== 'REJECTED');
     if (leave) {
       return {
-        // Show a marker for part-days (< full 7.25h); full days stay blank.
-        label: leave.hours < 7.25 ? leave.hours.toFixed(2) : '',
+        label: this.hlabel(leave.hours),   // always show the hours
         kind: leave.status === 'PENDING' ? 'pending' : 'leave',
         type: leave.type,
       };
     }
     const hrs = row.entries.filter((e) => e.date === iso).reduce((s, e) => s + e.hours, 0);
-    if (hrs > 0) return { label: hrs + 'h', kind: 'work' };
+    if (hrs > 0) return { label: this.hlabel(hrs), kind: 'work' };
     if (this.isWeekend(day)) return { label: '', kind: 'bank' };
     return { label: '', kind: 'empty' };
+  }
+  /** Compact hours label: 8 -> "8h", 7.25 -> "7.25h", 7.5 -> "7.5h". */
+  private hlabel(n: number): string {
+    return (Number.isInteger(n) ? String(n) : String(+n.toFixed(2))) + 'h';
   }
   cellClass(c: Cell): string {
     if (c.kind === 'work') return 'work';

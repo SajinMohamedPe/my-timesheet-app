@@ -32,6 +32,7 @@
 .internal { background: #1976d2; }
 .bank { background: #607d8b; }
 .pending { background: repeating-linear-gradient(45deg, #f5a623, #f5a623 5px, #ffe4b5 5px, #ffe4b5 10px); }
+table.plan td.cell.pending { color: #6b4e00; }
 .empty { background: transparent; }
 table.plan td.cell.training { color: #4a3600; }
 table.plan td.cell { font-weight: 700; }
@@ -54,7 +55,7 @@ table.plan td.cell { font-weight: 700; }
 .block-h .bdesc { font-weight: 400; opacity: .85; font-size: 13px; }
 .block-body { padding: 12px 14px; }
 .block .gridwrap { padding: 8px; }
-table.plan { border-collapse: collapse; table-layout: fixed; }
+table.plan { border-collapse: collapse; table-layout: fixed; width: 100%; }
 table.plan th.emp, table.plan td.emp { position: sticky; left: 0; background: var(--dtt-card, #fff); text-align: left; padding: 8px 12px; width: 180px; white-space: nowrap; z-index: 1; }
 table.plan th.d { width: 34px; text-align: center; font-size: 11px; color: var(--dtt-muted); padding: 4px 0; }
 table.plan th.d small { display: block; font-size: 9px; }
