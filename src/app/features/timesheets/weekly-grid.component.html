@@ -56,7 +56,7 @@
                     <div class="code">{{ row.wbs.code }}</div>
                     <div class="desc">{{ row.wbs.currentName }}</div>
                   </div>
-                  <button class="rm" title="Remove charge code" (click)="removeWbsRow(row)"><mat-icon>delete_outline</mat-icon></button>
+                  <button class="rm" title="Delete charge code row" (click)="askRemoveWbs(row)"><mat-icon>delete_outline</mat-icon></button>
                 </div>
               </td>
               @for (d of days(); track $index) {
@@ -95,7 +95,7 @@
             <td class="rowhead">
               <div class="rowhead-inner">
                 <div class="desc leave-label {{ leaveKey(lt.type) }}">{{ lt.label }}</div>
-                <button class="rm" title="Remove leave" (click)="removeLeaveRow(lt.type)"><mat-icon>delete_outline</mat-icon></button>
+                <button class="rm" title="Delete leave row" (click)="askRemoveLeave(lt.type)"><mat-icon>delete_outline</mat-icon></button>
               </div>
             </td>
             @for (d of days(); track $index) {
@@ -137,3 +137,13 @@
     approval request routed to the domain admin. 8h = 1 day. Weekends are auto Bank Holiday.
   </p>
 </div>
+
+<dtt-confirm-dialog
+  [open]="!!confirmState()"
+  [title]="confirmState()?.title ?? ''"
+  [message]="confirmState()?.message ?? ''"
+  [detail]="confirmState()?.detail ?? ''"
+  confirmLabel="Delete record"
+  [danger]="true"
+  (confirm)="performConfirm()"
+  (cancel)="cancelConfirm()" />

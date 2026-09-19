@@ -8,6 +8,7 @@ import { DomainContextService } from '../../core/services/domain-context.service
 import { ApiService, WbsCodeView } from '../../core/services/api.service';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { SearchSelectComponent, SelectOption } from '../../shared/search-select.component';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import {
   Domain, LeaveRequest, LeaveType, MAX_LEAVE_HOURS_PER_DAY, TimeEntry, User,
 } from '../../core/models/models';
@@ -30,7 +31,7 @@ const LEAVE_KEY: Record<LeaveType, string> = {
 
 @Component({
   selector: 'dtt-weekly-grid',
-  imports: [FormsModule, MatIconModule, MatMenuModule, PageHeaderComponent, SearchSelectComponent],
+  imports: [FormsModule, MatIconModule, MatMenuModule, PageHeaderComponent, SearchSelectComponent, ConfirmDialogComponent],
   templateUrl: './weekly-grid.component.html',
   styleUrl: './weekly-grid.component.scss',
 })
@@ -216,34 +217,62 @@ export class WeeklyGridComponent implements OnInit {
     }
   }
 
-  // ---- Remove rows ----
-  removeWbsRow(row: WbsRow): void {
-    if (!confirm(`Remove ${row.wbs.code} and clear its entries for this week?`)) return;
-    this.saving.set(true);
-    const toDelete = this.days()
-      .map((d) => this.entryFor(row.wbs.id, d)).filter((e): e is TimeEntry => !!e);
-    const after = () => {
-      const cur = { ...this.extraRows() };
-      cur[row.wbs.domainId] = (cur[row.wbs.domainId] ?? []).filter((id) => id !== row.wbs.id);
-      this.extraRows.set(cur);
-      this.saving.set(false); this.reload();
-    };
-    if (!toDelete.length) { after(); return; }
-    let done = 0;
-    toDelete.forEach((e) => this.api.deleteTimeEntry(e.id).subscribe(() => { if (++done === toDelete.length) after(); }));
+  // ---- Remove rows (confirmed via in-app modal) ----
+  confirmState = signal<
+    | { kind: 'wbs'; row: WbsRow; title: string; message: string; detail: string }
+    | { kind: 'leave'; type: LeaveType; title: string; message: string; detail: string }
+    | null
+  >(null);
+
+  askRemoveWbs(row: WbsRow): void {
+    const count = this.days().map((d) => this.entryFor(row.wbs.id, d)).filter(Boolean).length;
+    this.confirmState.set({
+      kind: 'wbs', row,
+      title: 'Delete charge code row?',
+      message: `This will delete the entire ${row.wbs.code} — ${row.wbs.currentName} row for ${this.rangeLabel()}, including ${count} time ${count === 1 ? 'entry' : 'entries'} logged against it this week.`,
+      detail: 'The whole record will be removed and this action cannot be undone.',
+    });
   }
-  removeLeaveRow(type: LeaveType): void {
-    if (!confirm('Remove this leave row and delete its requests for this week?')) return;
+  askRemoveLeave(type: LeaveType): void {
+    const label = this.leaveTypes.find((l) => l.type === type)?.label ?? 'leave';
+    const count = this.days().map((d) => this.leaveFor(type, d)).filter(Boolean).length;
+    this.confirmState.set({
+      kind: 'leave', type,
+      title: 'Delete leave row?',
+      message: `This will delete the entire ${label} row for ${this.rangeLabel()}, including ${count} leave ${count === 1 ? 'request' : 'requests'} this week (approved or pending).`,
+      detail: 'The whole record will be removed and this action cannot be undone.',
+    });
+  }
+  cancelConfirm(): void { this.confirmState.set(null); }
+
+  performConfirm(): void {
+    const state = this.confirmState();
+    if (!state) return;
+    this.confirmState.set(null);
     this.saving.set(true);
-    const toDelete = this.days()
-      .map((d) => this.leaveFor(type, d)).filter((l): l is LeaveRequest => !!l);
-    const after = () => {
-      const s = new Set(this.extraLeave()); s.delete(type); this.extraLeave.set(s);
-      this.saving.set(false); this.reload();
-    };
-    if (!toDelete.length) { after(); return; }
-    let done = 0;
-    toDelete.forEach((l) => this.api.deleteLeave(l.id).subscribe(() => { if (++done === toDelete.length) after(); }));
+    if (state.kind === 'wbs') {
+      const row = state.row;
+      const toDelete = this.days().map((d) => this.entryFor(row.wbs.id, d)).filter((e): e is TimeEntry => !!e);
+      const after = () => {
+        const cur = { ...this.extraRows() };
+        cur[row.wbs.domainId] = (cur[row.wbs.domainId] ?? []).filter((id) => id !== row.wbs.id);
+        this.extraRows.set(cur);
+        this.saving.set(false); this.reload();
+      };
+      if (!toDelete.length) { after(); return; }
+      let done = 0;
+      toDelete.forEach((e) => this.api.deleteTimeEntry(e.id).subscribe(() => { if (++done === toDelete.length) after(); }));
+    } else {
+      const type = state.type;
+      const toDelete = this.days().map((d) => this.leaveFor(type, d)).filter((l): l is LeaveRequest => !!l);
+      const after = () => {
+        const s = new Set(this.extraLeave()); s.delete(type); this.extraLeave.set(s);
+        this.saving.set(false); this.reload();
+      };
+      if (!toDelete.length) { after(); return; }
+      let done = 0;
+      toDelete.forEach((l) => this.api.deleteLeave(l.id).subscribe(() => { if (++done === toDelete.length) after(); }));
+    }
   }
 
   // ---- Totals ----
