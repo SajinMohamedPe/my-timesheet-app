@@ -180,6 +180,18 @@ export class WeeklyGridComponent implements OnInit {
   fmtCell(n: number | null): string { return n == null ? '' : n.toFixed(2); }
   fmtTotal(n: number): string { return n ? n.toFixed(2) : ''; }
 
+  // ---- Per-group totals (for the grouped-block layout) ----
+  private weekIsoSet = computed(() => new Set(this.days().map((d) => isoDate(d))));
+  groupTotal(domainId: string): number {
+    const iso = this.weekIsoSet();
+    return Math.round(
+      this.entries().filter((e) => e.domainId === domainId && iso.has(e.date))
+        .reduce((s, e) => s + e.hours, 0) * 100) / 100;
+  }
+  absenceTotal(): number {
+    return Math.round(this.visibleLeaveTypes().reduce((s, lt) => s + this.leaveRowTotal(lt.type), 0) * 100) / 100;
+  }
+
   // ---- Time cells ----
   entryFor(wbsId: string, day: Date): TimeEntry | undefined {
     const d = isoDate(day);

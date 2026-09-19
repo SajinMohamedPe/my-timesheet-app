@@ -39,6 +39,16 @@ table.plan td.cell { font-weight: 700; }
 .tabbody { border-top: 1px solid var(--dtt-line); padding: 16px 20px; }
 .tab-title { margin: 0 0 6px; }
 .gridwrap { overflow-x: auto; }
+
+/* Grouped-block language, shared with the Timesheet screen */
+.block { border: 1px solid var(--dtt-line); border-radius: 11px; overflow: hidden; background: var(--dtt-card); }
+.block-h { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #f0f4e8;
+  color: var(--dtt-green-dark); font-weight: 700; font-size: 14px; }
+.block-h .bi { font-size: 18px; width: 18px; height: 18px; }
+.block-h .bname { font-weight: 700; }
+.block-h .bdesc { font-weight: 400; opacity: .85; font-size: 13px; }
+.block-body { padding: 12px 14px; }
+.block .gridwrap { padding: 8px; }
 table.plan { border-collapse: collapse; }
 table.plan th.emp, table.plan td.emp { position: sticky; left: 0; background: #fff; text-align: left; padding: 8px 12px; min-width: 160px; white-space: nowrap; z-index: 1; }
 table.plan th.d { width: 30px; text-align: center; font-size: 11px; color: var(--dtt-muted); padding: 4px 0; }

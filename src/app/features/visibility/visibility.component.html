@@ -55,6 +55,9 @@
   <!-- Tab body -->
   <div class="tabbody">
     @if (tab()==='LIVE') {
+      <div class="block">
+        <div class="block-h"><mat-icon class="bi">groups</mat-icon><span class="bname">Team</span>
+          <span class="bdesc">{{ ctx.selected()?.name ?? 'All domains' }} · {{ monthLabel() }}</span></div>
       <div class="gridwrap">
         <table class="plan">
           <thead>
@@ -79,11 +82,14 @@
           </tbody>
         </table>
       </div>
+      </div>
     }
 
     @if (tab()==='UPLOADED') {
-      <h3 class="tab-title">Uploaded Timesheet — {{ monthLabel() }}</h3>
-      <p class="muted small">External hours imported for staff who don't log in-app. Feeds the merged Project Summary.</p>
+      <div class="block">
+      <div class="block-h"><mat-icon class="bi">upload_file</mat-icon><span class="bname">Uploaded Timesheet</span>
+        <span class="bdesc">{{ monthLabel() }} · external hours for staff who don't log in-app</span></div>
+      <div class="block-body">
       <table class="dtt">
         <thead><tr><th>Name</th><th>WBS Code</th><th>Project</th><th>Hours</th></tr></thead>
         <tbody>
@@ -93,11 +99,15 @@
           @if (!uploaded().length) { <tr><td colspan="4" class="muted">Nothing uploaded yet. Use “Upload Timesheet”.</td></tr> }
         </tbody>
       </table>
+      </div>
+      </div>
     }
 
     @if (tab()==='DIFF') {
-      <h3 class="tab-title">Differences — in-app vs uploaded</h3>
-      <p class="muted small">Rows where the hours logged in this app differ from the uploaded export (monthly totals per person).</p>
+      <div class="block">
+      <div class="block-h"><mat-icon class="bi">difference</mat-icon><span class="bname">Differences</span>
+        <span class="bdesc">in-app vs uploaded · monthly totals per person</span></div>
+      <div class="block-body">
       <table class="dtt">
         <thead><tr><th>Name</th><th>WBS</th><th>Project</th><th>In-app</th><th>Uploaded</th><th>Δ</th></tr></thead>
         <tbody>
@@ -111,6 +121,8 @@
           @if (!diffRows().length) { <tr><td colspan="6" class="chip green">✓ No differences — in-app and uploaded match.</td></tr> }
         </tbody>
       </table>
+      </div>
+      </div>
     }
   </div>
 </div>

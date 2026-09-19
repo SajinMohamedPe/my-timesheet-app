@@ -17,127 +17,143 @@
       <button (click)="nextWeek()"><mat-icon>chevron_right</mat-icon></button>
     </div>
     <div class="wtotal">
-      <div class="v">{{ weekTotal() }}<span>h</span></div>
+      <div class="v">{{ fmtTotal(weekTotal()) || '0.00' }}<span>h</span></div>
       <div class="l">this week @if (saving()) { · saving… }</div>
     </div>
   </div>
 
-  <div class="grid">
-  <table class="wk">
-    <thead>
-      <tr>
-        <th class="rowhead">Project / Charge code</th>
-        @for (d of days(); track $index) {
-          <th class="day" [class.weekend]="isWeekend(d)">
-            <div class="dn">{{ d.getDate() }}</div>
-            <div class="dl">{{ d.toLocaleDateString('en-IE', { weekday: 'short' }) }}</div>
-          </th>
-        }
-        <th class="total">Weekly</th>
-      </tr>
-    </thead>
-
-    <tbody>
-      <!-- Time groups by domain (collapsible) -->
-      @for (g of groups(); track g.domain.id) {
-        <tr class="group"><td [attr.colspan]="9">
-          <button class="ghead" (click)="toggleGroup(g.domain.id)">
-            <mat-icon class="caret">{{ isCollapsed(g.domain.id) ? 'chevron_right' : 'expand_more' }}</mat-icon>
-            <mat-icon>workspaces</mat-icon> {{ g.domain.name }}
-            <span class="muted">— {{ g.domain.description }}</span>
-          </button>
-        </td></tr>
-
-        @if (!isCollapsed(g.domain.id)) {
-          @for (row of g.rows; track row.wbs.id) {
-            <tr>
-              <td class="rowhead">
-                <div class="rowhead-inner">
-                  <div>
-                    <div class="code">{{ row.wbs.code }}</div>
-                    <div class="desc">{{ row.wbs.currentName }}</div>
-                  </div>
-                  <button class="rm" title="Delete charge code row" (click)="askRemoveWbs(row)"><mat-icon>delete_outline</mat-icon></button>
-                </div>
-              </td>
-              @for (d of days(); track $index) {
-                <td class="cell" [class.weekend]="isWeekend(d)">
-                  <input type="text" inputmode="decimal"
-                    [value]="fmtCell(hoursFor(row.wbs.id, d))"
-                    (change)="setHours(row, d, $any($event.target).value)" />
-                </td>
-              }
-              <td class="total">{{ fmtTotal(rowTotal(row.wbs.id)) }}</td>
-            </tr>
-          }
-          <tr class="addrow">
-            <td class="rowhead">
-              @if (wbsOptions(g.domain.id).length) {
-                <dtt-search-select triggerLabel="Add charge code" placeholder="Search WBS code or project…"
-                  [options]="wbsOptions(g.domain.id)" (pick)="addRow(g.domain.id, $event)" />
-              } @else { <span class="muted small">All charge codes added</span> }
-            </td>
-            <td [attr.colspan]="8"></td>
-          </tr>
-        }
-      }
-
-      <!-- Absence group (collapsible; only added/existing leave types) -->
-      <tr class="group absence"><td [attr.colspan]="9">
-        <button class="ghead" (click)="toggleGroup('absence')">
-          <mat-icon class="caret">{{ isCollapsed('absence') ? 'chevron_right' : 'expand_more' }}</mat-icon>
-          <mat-icon>beach_access</mat-icon> Absence / Leave <span class="muted">— requires approval</span>
-        </button>
-      </td></tr>
-
-      @if (!isCollapsed('absence')) {
-        @for (lt of visibleLeaveTypes(); track lt.type) {
+  <div class="gridscroll">
+    <div class="sheetbody">
+      <!-- Shared column header -->
+      <table class="wkt head">
+        <thead>
           <tr>
-            <td class="rowhead">
-              <div class="rowhead-inner">
-                <div class="desc leave-label {{ leaveKey(lt.type) }}">{{ lt.label }}</div>
-                <button class="rm" title="Delete leave row" (click)="askRemoveLeave(lt.type)"><mat-icon>delete_outline</mat-icon></button>
-              </div>
-            </td>
+            <th class="c-rh">Project / Charge code</th>
             @for (d of days(); track $index) {
-              <td class="cell leave {{ leaveStatusClass(lt.type, d) }}" [class.weekend]="isWeekend(d)"
-                  [title]="leaveStatusLabel(lt.type, d)">
-                <input type="text" inputmode="decimal" class="leave-input {{ leaveKey(lt.type) }}"
-                  [value]="fmtCell(leaveHours(lt.type, d))"
-                  (change)="setLeave(lt.type, d, $any($event.target).value)" />
-              </td>
+              <th class="c-day" [class.weekend]="isWeekend(d)">
+                <div class="dn">{{ d.getDate() }}</div><div class="dl">{{ d.toLocaleDateString('en-IE', { weekday: 'short' }) }}</div>
+              </th>
             }
-            <td class="total">{{ fmtTotal(leaveRowTotal(lt.type)) }}</td>
+            <th class="c-wk">Weekly</th>
           </tr>
-        }
-        <tr class="addrow">
-          <td class="rowhead">
-            @if (leaveOptions().length) {
-              <dtt-search-select triggerLabel="Add leave type" placeholder="Search leave type…"
-                [options]="leaveOptions()" (pick)="addLeaveRow($event)" />
-            } @else { <span class="muted small">All leave types added</span> }
-          </td>
-          <td [attr.colspan]="8"></td>
-        </tr>
+        </thead>
+      </table>
+
+      <!-- Domain blocks -->
+      @for (g of groups(); track g.domain.id) {
+        <div class="block">
+          <button class="block-h" (click)="toggleGroup(g.domain.id)">
+            <mat-icon class="caret">{{ isCollapsed(g.domain.id) ? 'chevron_right' : 'expand_more' }}</mat-icon>
+            <mat-icon class="bi">workspaces</mat-icon>
+            <span class="bname">{{ g.domain.name }}</span>
+            <span class="bdesc">{{ g.domain.description }}</span>
+            <span class="spacer"></span>
+            <span class="btot">{{ fmtTotal(groupTotal(g.domain.id)) || '0.00' }} h</span>
+          </button>
+
+          @if (!isCollapsed(g.domain.id)) {
+            <table class="wkt">
+              <tbody>
+                @for (row of g.rows; track row.wbs.id) {
+                  <tr>
+                    <td class="c-rh rowhead">
+                      <div class="rowhead-inner">
+                        <div><div class="code">{{ row.wbs.code }}</div><div class="desc">{{ row.wbs.currentName }}</div></div>
+                        <button class="rm" title="Delete charge code row" (click)="askRemoveWbs(row)"><mat-icon>delete_outline</mat-icon></button>
+                      </div>
+                    </td>
+                    @for (d of days(); track $index) {
+                      <td class="c-day cell" [class.weekend]="isWeekend(d)">
+                        <input type="text" inputmode="decimal" [value]="fmtCell(hoursFor(row.wbs.id, d))"
+                          (change)="setHours(row, d, $any($event.target).value)" />
+                      </td>
+                    }
+                    <td class="c-wk total">{{ fmtTotal(rowTotal(row.wbs.id)) }}</td>
+                  </tr>
+                }
+                <tr class="addrow">
+                  <td class="c-rh">
+                    @if (wbsOptions(g.domain.id).length) {
+                      <dtt-search-select triggerLabel="Add charge code" placeholder="Search WBS code or project…"
+                        [options]="wbsOptions(g.domain.id)" (pick)="addRow(g.domain.id, $event)" />
+                    } @else { <span class="muted small">All charge codes added</span> }
+                  </td>
+                  @for (d of days(); track $index) { <td class="c-day" [class.weekend]="isWeekend(d)"></td> }
+                  <td class="c-wk"></td>
+                </tr>
+              </tbody>
+            </table>
+          }
+        </div>
       }
-    </tbody>
 
-    <tfoot>
-      <tr>
-        <td class="rowhead">Daily total</td>
-        @for (d of days(); track $index) {
-          <td class="total" [class.weekend]="isWeekend(d)">{{ fmtTotal(dayTotal(d)) }}</td>
+      <!-- Absence block -->
+      <div class="block abs">
+        <button class="block-h" (click)="toggleGroup('absence')">
+          <mat-icon class="caret">{{ isCollapsed('absence') ? 'chevron_right' : 'expand_more' }}</mat-icon>
+          <mat-icon class="bi">beach_access</mat-icon>
+          <span class="bname">Absence / Leave</span>
+          <span class="bdesc">requires approval</span>
+          <span class="spacer"></span>
+          <span class="btot">{{ fmtTotal(absenceTotal()) || '0.00' }} h</span>
+        </button>
+
+        @if (!isCollapsed('absence')) {
+          <table class="wkt">
+            <tbody>
+              @for (lt of visibleLeaveTypes(); track lt.type) {
+                <tr>
+                  <td class="c-rh rowhead">
+                    <div class="rowhead-inner">
+                      <div class="desc leave-label">{{ lt.label }}</div>
+                      <button class="rm" title="Delete leave row" (click)="askRemoveLeave(lt.type)"><mat-icon>delete_outline</mat-icon></button>
+                    </div>
+                  </td>
+                  @for (d of days(); track $index) {
+                    <td class="c-day cell leave {{ leaveStatusClass(lt.type, d) }}" [class.weekend]="isWeekend(d)"
+                        [title]="leaveStatusLabel(lt.type, d)">
+                      <input type="text" inputmode="decimal" class="leave-input"
+                        [value]="fmtCell(leaveHours(lt.type, d))"
+                        (change)="setLeave(lt.type, d, $any($event.target).value)" />
+                    </td>
+                  }
+                  <td class="c-wk total">{{ fmtTotal(leaveRowTotal(lt.type)) }}</td>
+                </tr>
+              }
+              <tr class="addrow">
+                <td class="c-rh">
+                  @if (leaveOptions().length) {
+                    <dtt-search-select triggerLabel="Add leave type" placeholder="Search leave type…"
+                      [options]="leaveOptions()" (pick)="addLeaveRow($event)" />
+                  } @else { <span class="muted small">All leave types added</span> }
+                </td>
+                @for (d of days(); track $index) { <td class="c-day" [class.weekend]="isWeekend(d)"></td> }
+                <td class="c-wk"></td>
+              </tr>
+            </tbody>
+          </table>
         }
-        <td class="grand">{{ fmtTotal(weekTotal()) }}</td>
-      </tr>
-    </tfoot>
-  </table>
+      </div>
 
-    <p class="hint muted small">
-      Enter hours per day against a charge code — saved automatically. Leave cells (Absence) create an
-      approval request routed to the domain admin. 8h = 1 day. Weekends are auto Bank Holiday.
-    </p>
+      <!-- Daily total strip -->
+      <table class="wkt totalstrip">
+        <tbody>
+          <tr>
+            <td class="c-rh">Daily total</td>
+            @for (d of days(); track $index) {
+              <td class="c-day" [class.weekend]="isWeekend(d)">{{ fmtTotal(dayTotal(d)) }}</td>
+            }
+            <td class="c-wk grand">{{ fmtTotal(weekTotal()) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
+
+  <p class="hint muted small">
+    Enter hours per day against a charge code — saved automatically. Leave (Absence) is capped at 7.25h/day and
+    goes to the domain admin for approval. 8h = 1 day for reporting. Weekends are auto Bank Holiday.
+  </p>
 </div>
 
 <dtt-confirm-dialog
