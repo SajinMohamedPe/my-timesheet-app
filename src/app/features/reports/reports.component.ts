@@ -6,7 +6,7 @@ import { DomainContextService } from '../../core/services/domain-context.service
 import { ApiService, EmployeeReport } from '../../core/services/api.service';
 import { ExportService } from '../../core/services/export.service';
 import { PageHeaderComponent } from '../../shared/page-header.component';
-import { currentMonth } from '../../core/util/dates';
+import { currentMonth, isIrishBankHoliday } from '../../core/util/dates';
 import { User } from '../../core/models/models';
 
 @Component({
@@ -29,7 +29,7 @@ import { User } from '../../core/models/models';
       </div>
       <div class="field">
         <label>MONTH</label>
-        <input type="month" [(ngModel)]="month" />
+        <input type="month" [(ngModel)]="month" (ngModelChange)="loadOver()" />
       </div>
       <button class="btn excel" (click)="download('xlsx')"><mat-icon>download</mat-icon> Download Excel</button>
       <button class="btn pdf" (click)="download('pdf')"><mat-icon>picture_as_pdf</mat-icon> Download PDF</button>
@@ -47,9 +47,17 @@ import { User } from '../../core/models/models';
     <div class="block-body">
     <div class="cards">
       @for (u of users(); track u.id) {
-        <div class="qcard">
+        <div class="qcard" [class.warn]="overUsers().has(u.id)">
           <span class="ava">{{ u.name[0] }}</span>
-          <div class="info"><div class="n">{{ u.name }}</div><div class="s chip green">{{ u.active ? 'Active' : 'Inactive' }}</div></div>
+          <div class="info">
+            <div class="n">{{ u.name }}
+              @if (overUsers().has(u.id)) { <mat-icon class="warnico" title="Has a day over 8h this month">warning</mat-icon> }
+            </div>
+            <div class="s">
+              @if (overUsers().has(u.id)) { <span class="chip red">Over 8h</span> }
+              @else { <span class="chip green">{{ u.active ? 'Active' : 'Inactive' }}</span> }
+            </div>
+          </div>
           <div class="acts">
             <button (click)="one(u.id,'xlsx')">XLS</button>
             <button (click)="one(u.id,'pdf')">PDF</button>
@@ -69,6 +77,7 @@ export class ReportsComponent implements OnInit {
   private exporter = inject(ExportService);
 
   users = signal<User[]>([]);
+  overUsers = signal<Set<string>>(new Set()); // users with any day > 8h this month
   selected = 'ALL';
   month = currentMonth();
   busy = signal('');
@@ -78,6 +87,31 @@ export class ReportsComponent implements OnInit {
 
   private load(): void {
     this.api.getUsers(this.ctx.selectedId() ?? undefined).subscribe((u) => this.users.set(u));
+    this.loadOver();
+  }
+
+  /** Flag employees who have any day over 8h (work + leave) in the selected month. */
+  loadOver(): void {
+    this.api.getVisibility(this.ctx.selectedId(), this.month).subscribe((plan) => {
+      const over = new Set<string>();
+      for (const row of plan.rows) {
+        const byDate = new Map<string, { w: number; l: number; bank: boolean }>();
+        for (const e of row.entries) {
+          const x = byDate.get(e.date) ?? { w: 0, l: 0, bank: false }; x.w += e.hours; byDate.set(e.date, x);
+        }
+        for (const lv of row.leaves) {
+          if (lv.status === 'REJECTED') continue;
+          const x = byDate.get(lv.date) ?? { w: 0, l: 0, bank: false };
+          x.l += lv.hours || 0; if (lv.type === 'BANK_HOLIDAY') x.bank = true; byDate.set(lv.date, x);
+        }
+        for (const [date, x] of byDate) {
+          let total = x.w + x.l;
+          if (isIrishBankHoliday(new Date(date + 'T00:00:00')) && !x.bank) total += 7.25;
+          if (total > 8) { over.add(row.userId); break; }
+        }
+      }
+      this.overUsers.set(over);
+    });
   }
 
   download(format: 'xlsx' | 'pdf'): void {

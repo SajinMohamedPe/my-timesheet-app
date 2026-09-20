@@ -14,6 +14,9 @@ h3 { margin: 0 0 4px; }
 .qtitle { font-size: 11px; letter-spacing: .06em; color: var(--dtt-muted); margin-bottom: 12px; }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
 .qcard { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid var(--dtt-line); border-radius: 12px; padding: 14px 16px; }
+.qcard.warn { border-color: #f2b8b5; background: #fdf6f5; }
+.qcard .n { display: flex; align-items: center; gap: 4px; }
+.warnico { color: #e53935; font-size: 16px; width: 16px; height: 16px; }
 .qcard .info { flex: 1; }
 .qcard .n { font-weight: 600; }
 .qcard .s { font-size: 11px; }

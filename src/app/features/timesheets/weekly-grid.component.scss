@@ -114,6 +114,8 @@ tbody.totalsec td:first-child { border-left: 1px solid var(--dtt-line); text-ali
 tbody.totalsec td:last-child { border-right: 1px solid var(--dtt-line);
   border-top-right-radius: 11px; border-bottom-right-radius: 11px; }
 td.c-wk.grand { color: var(--dtt-green-dark); font-size: 15px; }
+/* Over-8h daily total highlight */
+tbody.totalsec td.c-day.over8 { color: #b4322f; background: #fdeceb; box-shadow: inset 0 0 0 2px #e53935; }
 
 .hint { padding: 12px 20px 16px; }
 .small { font-size: 12px; }
