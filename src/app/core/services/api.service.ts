@@ -14,8 +14,15 @@ export interface VisibilityRow {
 export interface VisibilityPlan { month: string; rows: VisibilityRow[]; }
 
 export interface UploadedRow {
-  id: string; month: string; domainId: string; userName: string;
-  wbsCode: string; project: string; hours: number;
+  id: string;
+  domainId: string;
+  month: string;          // derived from workDate (YYYY-MM)
+  workDate: string;       // YYYY-MM-DD
+  wbsCode: string;
+  project: string;        // WBS L4 name
+  associateName: string;  // "Last, First"
+  resourceName: string;   // "First Last" — used for display & matching
+  hours: number;
 }
 
 export interface EmployeeReport {

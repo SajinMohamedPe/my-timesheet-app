@@ -488,12 +488,19 @@ function projectSummary(db: MockDb, me: User, query: URLSearchParams): ProjectSu
     if (!u || !w) continue;
     add(u.name, w.code, resolveWbsName(w, e.date), e.hours, domainName(domains, w.domainId));
   }
-  // Uploaded rows (staff) — skip a person+wbs already present in-app (in-app wins).
+  // Uploaded rows (staff): aggregate per-day rows by resource+WBS for the month,
+  // then add unless that person+WBS is already present in-app (in-app wins).
+  const upAgg = new Map<string, { name: string; code: string; project: string; hours: number; dom: string }>();
   for (const r of db.get('uploaded')) {
     if (!scopeIds.includes(r.domainId) || r.month !== month) continue;
-    const key = r.userName + '|' + r.wbsCode;
-    if (map.has(key)) continue;
-    add(r.userName, r.wbsCode, r.project, r.hours, domainName(domains, r.domainId));
+    const key = r.resourceName + '|' + r.wbsCode;
+    const cur = upAgg.get(key) ?? { name: r.resourceName, code: r.wbsCode, project: r.project, hours: 0, dom: domainName(domains, r.domainId) };
+    cur.hours += r.hours;
+    upAgg.set(key, cur);
+  }
+  for (const a of upAgg.values()) {
+    if (map.has(a.name + '|' + a.code)) continue;
+    add(a.name, a.code, a.project, a.hours, a.dom);
   }
 
   const rows = [...map.values()].sort(

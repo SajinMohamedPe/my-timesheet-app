@@ -98,17 +98,31 @@
     @if (tab()==='UPLOADED') {
       <div class="block">
       <div class="block-h"><mat-icon class="bi">upload_file</mat-icon><span class="bname">Uploaded Timesheet</span>
-        <span class="bdesc">{{ monthLabel() }} · external hours for staff who don't log in-app</span></div>
-      <div class="block-body">
-      <table class="dtt">
-        <thead><tr><th>Name</th><th>WBS Code</th><th>Project</th><th>Hours</th></tr></thead>
-        <tbody>
-          @for (u of uploaded(); track u.id) {
-            <tr><td>{{ u.userName }}</td><td>{{ u.wbsCode }}</td><td>{{ u.project }}</td><td>{{ u.hours }}</td></tr>
-          }
-          @if (!uploaded().length) { <tr><td colspan="4" class="muted">Nothing uploaded yet. Use “Upload Timesheet”.</td></tr> }
-        </tbody>
-      </table>
+        <span class="bdesc">{{ monthLabel() }} · external hours for staff (from the uploaded file)</span></div>
+      <div class="gridwrap">
+        <table class="plan" [style.min-width.px]="180 + daysInMonth().length * 34">
+          <thead>
+            <tr>
+              <th class="emp">Resource</th>
+              @for (d of daysInMonth(); track $index) {
+                <th class="d" [class.weekend]="isWeekend(d)"><div>{{ d.getDate() }}</div><small>{{ ['S','M','T','W','T','F','S'][d.getDay()] }}</small></th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (name of uploadedNames(); track name) {
+              <tr>
+                <td class="emp"><span class="ava">{{ name[0] }}</span> {{ name }}</td>
+                @for (d of daysInMonth(); track $index) {
+                  @let h = uploadedHours(name, d);
+                  <td class="cell {{ h > 0 ? 'work' : 'empty' }}" [class.weekend]="isWeekend(d)" [class.over8]="h > 8"
+                      [title]="h > 0 ? (h + 'h') : ''">{{ h > 0 ? (h + 'h') : '' }}</td>
+                }
+              </tr>
+            }
+            @if (!uploadedNames().length) { <tr><td [attr.colspan]="daysInMonth().length + 1" class="muted empty">Nothing uploaded for this month. Use “Upload Timesheet”.</td></tr> }
+          </tbody>
+        </table>
       </div>
       </div>
     }
@@ -116,22 +130,38 @@
     @if (tab()==='DIFF') {
       <div class="block">
       <div class="block-h"><mat-icon class="bi">difference</mat-icon><span class="bname">Differences</span>
-        <span class="bdesc">in-app vs uploaded · monthly totals per person</span></div>
-      <div class="block-body">
-      <table class="dtt">
-        <thead><tr><th>Name</th><th>WBS</th><th>Project</th><th>In-app</th><th>Uploaded</th><th>Δ</th></tr></thead>
-        <tbody>
-          @for (d of diffRows(); track d.name) {
-            <tr>
-              <td>{{ d.name }}</td><td>{{ d.wbsCode }}</td><td>{{ d.project }}</td>
-              <td>{{ d.app }}h</td><td>{{ d.uploaded }}h</td>
-              <td><span class="chip" [class.red]="d.delta!==0">{{ d.delta > 0 ? '+' : '' }}{{ d.delta }}h</span></td>
-            </tr>
-          }
-          @if (!diffRows().length) { <tr><td colspan="6" class="chip green">✓ No differences — in-app and uploaded match.</td></tr> }
-        </tbody>
-      </table>
-      </div>
+        <span class="bdesc">in-app (live plan) vs uploaded · click a flagged day to fix it</span></div>
+      @if (diffPeople().length) {
+        <div class="gridwrap">
+          <table class="plan" [style.min-width.px]="180 + daysInMonth().length * 34">
+            <thead>
+              <tr>
+                <th class="emp">Employee</th>
+                @for (d of daysInMonth(); track $index) {
+                  <th class="d" [class.weekend]="isWeekend(d)"><div>{{ d.getDate() }}</div><small>{{ ['S','M','T','W','T','F','S'][d.getDay()] }}</small></th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (name of diffPeople(); track name) {
+                <tr>
+                  <td class="emp warn"><span class="ava">{{ name[0] }}</span> {{ name }}</td>
+                  @for (d of daysInMonth(); track $index) {
+                    @let dc = diffCell(name, d);
+                    <td class="cell {{ dc.differ ? 'diff' : 'empty' }}" [class.weekend]="isWeekend(d)"
+                        [class.clickable]="dc.differ"
+                        [title]="dc.differ ? ('In-app ' + dc.inApp + 'h · Uploaded ' + dc.up + 'h — click to fix') : ''"
+                        (click)="dc.differ ? openDiffDay(name, d) : null">{{ dc.differ ? ((dc.delta > 0 ? '+' : '') + dc.delta) : '' }}</td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="diffnote muted small">Red cells show <b>in-app − uploaded</b> for that day. Click a cell to open the person's day and correct the in-app hours.</p>
+      } @else {
+        <div class="block-body"><span class="chip green">✓ No differences — live plan and uploaded match.</span></div>
+      }
       </div>
     }
   </div>
@@ -149,6 +179,13 @@
         Day total: <b>{{ daySelTotal().toFixed(2) }}h</b>
         @if (daySelTotal() > 8) { <span class="chip red">Over 8h — please review</span> }
       </div>
+      @if (uploadedForSel() > 0) {
+        <div class="m-ref" [class.mismatch]="uploadedForSel() !== daySelTotal()">
+          Uploaded timesheet: <b>{{ uploadedForSel().toFixed(2) }}h</b>
+          @if (uploadedForSel() !== daySelTotal()) { <span class="chip red">doesn't match — reconcile</span> }
+          @else { <span class="chip green">matches</span> }
+        </div>
+      }
 
       <div class="m-sec">
         <div class="m-sec-h">Time entries</div>

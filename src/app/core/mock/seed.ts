@@ -16,14 +16,16 @@ export interface MockData {
   uploaded: UploadedRow[];
 }
 
-/** A row from an uploaded external (e.g. SAP) timesheet export. */
+/** A per-day row from an uploaded external (e.g. SAP) timesheet export. */
 export interface UploadedRow {
   id: string;
-  month: string;      // "2026-09"
   domainId: string;
-  userName: string;
+  month: string;          // "2026-09" (derived from workDate)
+  workDate: string;       // "2026-09-17"
   wbsCode: string;
-  project: string;
+  project: string;        // WBS L4 name
+  associateName: string;  // "Roche, Declan"
+  resourceName: string;   // "Declan Roche"
   hours: number;
 }
 
@@ -120,11 +122,17 @@ export function buildSeed(): MockData {
     },
   ];
 
+  const up = (id: string, domainId: string, workDate: string, wbsCode: string, project: string,
+    resourceName: string, associateName: string, hours: number): UploadedRow =>
+    ({ id, domainId, month: workDate.slice(0, 7), workDate, wbsCode, project, resourceName, associateName, hours });
   const uploaded: UploadedRow[] = [
-    // Declan is STAFF: only appears via upload.
-    { id: 'up-1', month: '2026-09', domainId: 'd-fish', userName: 'Declan Roche', wbsCode: 'WBS-2003', project: 'DIS — Smart Logbooks', hours: 160 },
-    // Alice appears both in-app and uploaded, with a mismatch -> shows in Differences.
-    { id: 'up-2', month: '2026-09', domainId: 'd-aim', userName: 'Alice Murphy', wbsCode: 'WBS-1001', project: 'Deloitte Portal', hours: 8 },
+    // Declan is STAFF (Fisheries): appears only via upload, per-day rows.
+    up('up-1', 'd-fish', '2026-09-14', 'WBS-2003', 'DIS — Smart Logbooks', 'Declan Roche', 'Roche, Declan', 7.5),
+    up('up-2', 'd-fish', '2026-09-15', 'WBS-2003', 'DIS — Smart Logbooks', 'Declan Roche', 'Roche, Declan', 7.5),
+    up('up-3', 'd-fish', '2026-09-16', 'WBS-2003', 'DIS — Smart Logbooks', 'Declan Roche', 'Roche, Declan', 8),
+    up('up-4', 'd-fish', '2026-09-17', 'WBS-2003', 'DIS — Smart Logbooks', 'Declan Roche', 'Roche, Declan', 6.5),
+    // Alice appears both in-app and uploaded; a mismatch on 17 Sep -> shows in Differences.
+    up('up-5', 'd-aim', '2026-09-17', 'WBS-1001', 'Deloitte Portal', 'Alice Murphy', 'Murphy, Alice', 8),
   ];
 
   return { domains, wbsCodes, users, timeEntries, leaveRequests, audit: [], uploaded };

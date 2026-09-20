@@ -242,10 +242,20 @@ JWT claims: `sub`=userId, `role`, `domainIds` (array), plus standard `exp`/`iat`
 
 ### 4.8 Uploads (reconciliation)
 
-- **GET `/api/uploads?domainId=&month=`** *(admin)* → `UploadedRow[]`
-  `UploadedRow = { id, month, domainId, userName, wbsCode, project, hours }`.
+- **GET `/api/uploads?domainId=&month=`** *(admin)* → `UploadedRow[]` (per-day rows).
+  `UploadedRow = { id, domainId, month, workDate, wbsCode, project, associateName, resourceName, hours }`
+  — `month` is derived from `workDate` (YYYY-MM); `project` = the WBS L4 name;
+  `associateName` = "Last, First"; `resourceName` = "First Last" (used for display and
+  for matching to in-app users); `hours` is decimal.
 - **POST `/api/uploads`** *(admin)* — `{ "rows": UploadedRow[] (without id) }` → `201 { "inserted": n }`.
-  The frontend parses the xlsx client-side (columns: `Name, WBS Code, Project, Hours`) and posts rows. The backend may alternatively accept the raw file at `POST /api/uploads/file` (multipart) and parse server-side — optional.
+  The frontend parses the xlsx client-side — expected columns (header names matched
+  loosely, case/space-insensitive): **WBS Code, Work Date, Associate Name, Resource
+  Name, Hours, WBS L4 Name**. The backend may alternatively accept the raw file at
+  `POST /api/uploads/file` (multipart) and parse server-side — optional.
+
+**Purpose & the two tabs.** Uploaded timesheets are for **staff** users (who don't log in-app); the in-app pipeline is for **contractors**. On the admin Visibility Plan:
+- **Uploaded Timesheet** renders the *same grid as Live Plan* (resource rows × day columns, hours per cell) but built only from uploaded rows.
+- **Differences** compares **in-app (live plan) vs uploaded, per person per day** (matched on normalised name + date), listing only the days where the hours differ (with the signed delta). This is the reconciliation view during the transition; days over 8h are still flagged elsewhere.
 
 ### 4.9 Reports
 

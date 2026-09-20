@@ -22,7 +22,7 @@ interface Cell {
   total: number;
   over8: boolean;
 }
-interface DiffRow { name: string; wbsCode: string; project: string; app: number; uploaded: number; delta: number; }
+interface DiffRow { name: string; date: string; app: number; uploaded: number; delta: number; }
 interface DaySel { userId: string; name: string; iso: string; label: string; }
 
 const LEAVE_COLORS: Record<LeaveType, string> = {
@@ -202,56 +202,130 @@ export class VisibilityComponent implements OnInit {
   approveLeaveRec(l: LeaveRequest): void { this.api.approveLeave(l.id).subscribe(() => this.load()); }
   rejectLeaveRec(l: LeaveRequest): void { this.api.rejectLeave(l.id).subscribe(() => this.load()); }
 
-  // ---- Differences ----
+  // ---- Uploaded Timesheet (grid like Live Plan, from the uploaded file) ----
+  uploadedNames = computed<string[]>(() =>
+    [...new Set(this.uploaded().map((u) => u.resourceName))].sort((a, b) => a.localeCompare(b)));
+  uploadedHours(name: string, day: Date): number {
+    const iso = isoDate(day);
+    return Math.round(this.uploaded().filter((u) => u.resourceName === name && u.workDate === iso)
+      .reduce((s, u) => s + u.hours, 0) * 100) / 100;
+  }
+  uploadedTotal(name: string): number {
+    return Math.round(this.uploaded().filter((u) => u.resourceName === name)
+      .reduce((s, u) => s + u.hours, 0) * 100) / 100;
+  }
+
+  // ---- Differences: per person per day, in-app (live plan) vs uploaded ----
+  private norm(s: string): string { return s.toLowerCase().replace(/\s+/g, ' ').trim(); }
   diffRows = computed<DiffRow[]>(() => {
     const p = this.plan();
     if (!p) return [];
-    // Coarse reconciliation for the demo: compare total in-app hours vs uploaded
-    // hours per person for the month. Real WBS-level matching is a backend concern.
-    const byNameApp = new Map<string, number>();
+    const app = new Map<string, number>();   // norm(name)|date -> in-app work hours
+    const upl = new Map<string, number>();    // norm(name)|date -> uploaded hours
+    const display = new Map<string, string>();
     for (const row of p.rows) {
-      const total = row.entries.reduce((s, e) => s + e.hours, 0);
-      if (total) byNameApp.set(row.name, (byNameApp.get(row.name) ?? 0) + total);
-    }
-    const byNameUp = new Map<string, { hours: number; wbs: string; project: string }>();
-    for (const u of this.uploaded()) {
-      const cur = byNameUp.get(u.userName) ?? { hours: 0, wbs: u.wbsCode, project: u.project };
-      cur.hours += u.hours; byNameUp.set(u.userName, cur);
-    }
-    const names = new Set([...byNameApp.keys(), ...byNameUp.keys()]);
-    const out: DiffRow[] = [];
-    for (const name of names) {
-      const app = byNameApp.get(name) ?? 0;
-      const up = byNameUp.get(name);
-      const uploadedHours = up?.hours ?? 0;
-      if (app !== uploadedHours) {
-        out.push({ name, wbsCode: up?.wbs ?? '—', project: up?.project ?? '(in-app only)', app, uploaded: uploadedHours, delta: app - uploadedHours });
+      for (const e of row.entries) {
+        const k = this.norm(row.name) + '|' + e.date;
+        app.set(k, (app.get(k) ?? 0) + e.hours);
+        display.set(this.norm(row.name), row.name);
       }
     }
-    return out.sort((a, b) => a.name.localeCompare(b.name));
+    for (const u of this.uploaded()) {
+      const k = this.norm(u.resourceName) + '|' + u.workDate;
+      upl.set(k, (upl.get(k) ?? 0) + u.hours);
+      display.set(this.norm(u.resourceName), u.resourceName);
+    }
+    const out: DiffRow[] = [];
+    for (const k of new Set([...app.keys(), ...upl.keys()])) {
+      const a = Math.round((app.get(k) ?? 0) * 100) / 100;
+      const u = Math.round((upl.get(k) ?? 0) * 100) / 100;
+      if (Math.abs(a - u) > 0.001) {
+        const [nkey, date] = k.split('|');
+        out.push({ name: display.get(nkey) ?? nkey, date, app: a, uploaded: u, delta: Math.round((a - u) * 100) / 100 });
+      }
+    }
+    return out.sort((x, y) => x.name.localeCompare(y.name) || x.date.localeCompare(y.date));
   });
 
-  // ---- Upload ----
+  // People with at least one mismatch (rows for the Differences grid)
+  diffPeople = computed<string[]>(() => {
+    const m = new Map<string, string>();
+    for (const d of this.diffRows()) m.set(this.norm(d.name), d.name);
+    return [...m.values()].sort((a, b) => a.localeCompare(b));
+  });
+  /** In-app vs uploaded hours for one person/day (for the Differences grid). */
+  diffCell(name: string, day: Date): { inApp: number; up: number; delta: number; differ: boolean } {
+    const iso = isoDate(day);
+    const row = this.plan()?.rows.find((r) => this.norm(r.name) === this.norm(name));
+    const inApp = row
+      ? Math.round(row.entries.filter((e) => e.date === iso).reduce((s, e) => s + e.hours, 0) * 100) / 100 : 0;
+    const up = Math.round(this.uploaded()
+      .filter((u) => this.norm(u.resourceName) === this.norm(name) && u.workDate === iso)
+      .reduce((s, u) => s + u.hours, 0) * 100) / 100;
+    return { inApp, up, delta: Math.round((inApp - up) * 100) / 100, differ: Math.abs(inApp - up) > 0.001 };
+  }
+  private appUserId(name: string): string | undefined {
+    return this.plan()?.rows.find((r) => this.norm(r.name) === this.norm(name))?.userId;
+  }
+  /** Click a differing cell → open the same edit modal (if the person logs in-app). */
+  openDiffDay(name: string, day: Date): void {
+    const uid = this.appUserId(name);
+    if (uid) this.openDay(uid, name, day);
+  }
+  /** Uploaded hours for the day currently open in the edit modal (reconciliation reference). */
+  uploadedForSel = computed<number>(() => {
+    const d = this.daySel(); if (!d) return 0;
+    return Math.round(this.uploaded()
+      .filter((u) => this.norm(u.resourceName) === this.norm(d.name) && u.workDate === d.iso)
+      .reduce((s, u) => s + u.hours, 0) * 100) / 100;
+  });
+
+  // ---- Upload (parse the external xlsx) ----
+  private toIso(v: unknown): string {
+    if (!v) return '';
+    if (v instanceof Date) return isoDate(v);
+    const d = new Date(String(v).trim());
+    return isNaN(d.getTime()) ? '' : isoDate(d);
+  }
+  private lastFirstToFirstLast(n: string): string {
+    if (n.includes(',')) { const [last, first] = n.split(',').map((x) => x.trim()); return `${first} ${last}`.trim(); }
+    return n;
+  }
   onFile(ev: Event): void {
     const input = ev.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
     this.busy.set('Parsing…');
     file.arrayBuffer().then((buf) => {
-      const wb = XLSX.read(buf, { type: 'array' });
+      const wb = XLSX.read(buf, { type: 'array', cellDates: true });
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const json = XLSX.utils.sheet_to_json<any>(sheet, { defval: '' });
       const domainId = this.ctx.selectedId()!;
-      const rows: Omit<UploadedRow, 'id'>[] = json
-        .filter((r) => (r.Name || r.name) && (r.Hours || r.hours))
-        .map((r) => ({
-          month: this.month(), domainId,
-          userName: String(r.Name ?? r.name),
-          wbsCode: String(r['WBS Code'] ?? r.wbsCode ?? r.WBS ?? ''),
-          project: String(r.Project ?? r.project ?? ''),
-          hours: Number(r.Hours ?? r.hours ?? 0),
-        }));
-      if (!rows.length) { this.busy.set(''); alert('No rows found. Expected columns: Name, WBS Code, Project, Hours'); return; }
+      const pick = (r: any, keys: string[]): any => {
+        for (const k of Object.keys(r)) {
+          const kn = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (keys.includes(kn)) return r[k];
+        }
+        return '';
+      };
+      const rows: Omit<UploadedRow, 'id'>[] = json.map((r) => {
+        const workDate = this.toIso(pick(r, ['workdate', 'date']));
+        const associateName = String(pick(r, ['associatename', 'associate', 'name']) || '').trim();
+        let resourceName = String(pick(r, ['resourcename', 'resource']) || '').trim();
+        if (!resourceName && associateName) resourceName = this.lastFirstToFirstLast(associateName);
+        return {
+          domainId, workDate, month: workDate.slice(0, 7),
+          wbsCode: String(pick(r, ['wbscode', 'wbs']) || '').trim(),
+          project: String(pick(r, ['wbsl4name', 'wbsl4', 'project']) || '').trim(),
+          associateName, resourceName,
+          hours: Number(pick(r, ['hours', 'hrs']) || 0),
+        };
+      }).filter((r) => r.resourceName && r.workDate && r.hours > 0);
+      if (!rows.length) {
+        this.busy.set('');
+        alert('No rows found. Expected columns: WBS Code, Work Date, Associate Name, Resource Name, Hours, WBS L4 Name.');
+        return;
+      }
       this.api.uploadRows(rows).subscribe(() => { this.busy.set(''); this.load(); this.tab.set('UPLOADED'); });
     }).catch(() => this.busy.set(''));
     input.value = '';
