@@ -96,6 +96,10 @@ export class ApiService {
   uploadRows(rows: Omit<UploadedRow, 'id'>[]) {
     return this.http.post<{ inserted: number }>(`${base}/uploads`, { rows });
   }
+  updateUpload(id: string, patch: Partial<Pick<UploadedRow, 'hours' | 'wbsCode' | 'project'>>) {
+    return this.http.put<UploadedRow>(`${base}/uploads/${id}`, patch);
+  }
+  deleteUpload(id: string) { return this.http.delete(`${base}/uploads/${id}`); }
 
   // Reports
   getProjectSummary(q: { scope: 'DOMAIN' | 'ALL'; domainId?: string | null; month: string }) {

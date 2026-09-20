@@ -116,7 +116,9 @@
                 @for (d of daysInMonth(); track $index) {
                   @let h = uploadedHours(name, d);
                   <td class="cell {{ h > 0 ? 'work' : 'empty' }}" [class.weekend]="isWeekend(d)" [class.over8]="h > 8"
-                      [title]="h > 0 ? (h + 'h') : ''">{{ h > 0 ? (h + 'h') : '' }}</td>
+                      [class.clickable]="auth.isAdmin()"
+                      [title]="h > 0 ? (h + 'h — click to edit') : 'click to edit'"
+                      (click)="openUp(name, d)">{{ h > 0 ? (h + 'h') : '' }}</td>
                 }
               </tr>
             }
@@ -222,6 +224,37 @@
       </div>
 
       <div class="m-foot"><button class="btn green" (click)="closeDay()">Done</button></div>
+    </div>
+  </div>
+}
+
+@if (upSel(); as us) {
+  <div class="backdrop" (click)="closeUp()">
+    <div class="daymodal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <div class="m-head">
+        <div><h3>{{ us.name }}</h3><div class="muted small">{{ us.label }} · uploaded timesheet</div></div>
+        <button class="x" (click)="closeUp()"><mat-icon>close</mat-icon></button>
+      </div>
+
+      <div class="m-total" [class.over]="upDayTotal() > 8">
+        Uploaded total: <b>{{ upDayTotal().toFixed(2) }}h</b>
+        @if (upDayTotal() > 8) { <span class="chip red">Over 8h</span> }
+      </div>
+
+      <div class="m-sec">
+        <div class="m-sec-h">Uploaded records</div>
+        @for (u of upDayRows(); track u.id) {
+          <div class="m-row">
+            <div class="m-lbl"><b>{{ u.wbsCode }}</b> <span class="muted">{{ u.project }}</span></div>
+            <input class="m-inp" type="number" min="0" step="0.25" [value]="u.hours"
+              (change)="saveUploadHours(u, $any($event.target).value)" /><span class="unit">h</span>
+            <button class="m-del" title="Delete uploaded row" (click)="removeUpload(u)"><mat-icon>delete_outline</mat-icon></button>
+          </div>
+        }
+        @if (!upDayRows().length) { <div class="muted small">No uploaded records for this day.</div> }
+      </div>
+
+      <div class="m-foot"><button class="btn green" (click)="closeUp()">Done</button></div>
     </div>
   </div>
 }

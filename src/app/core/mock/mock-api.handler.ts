@@ -426,7 +426,7 @@ function visibility(db: MockDb, me: User, query: URLSearchParams) {
 // ------------------------- Uploads -------------------------
 
 function uploadsRoute(db: MockDb, me: User, req: ParsedReq): MockResult {
-  const { method, query, body } = req;
+  const { method, segments: p, query, body } = req;
   const uploaded = db.get('uploaded');
   if (!isAdmin(me)) return err(403, 'Admin only');
 
@@ -439,12 +439,30 @@ function uploadsRoute(db: MockDb, me: User, req: ParsedReq): MockResult {
       .filter((r) => !domainId || r.domainId === domainId)
       .filter((r) => !month || r.month === month));
   }
-  if (method === 'POST') {
+  if (method === 'POST' && !p[2]) {
     // body.rows = UploadedRow[] (already parsed client-side from the xlsx)
     const rows = (body.rows ?? []) as any[];
     for (const r of rows) uploaded.push({ ...r, id: uid('up') });
     db.save();
     return created({ inserted: rows.length });
+  }
+  if (method === 'PUT' && p[2]) {
+    const r = uploaded.find((x) => x.id === p[2]);
+    if (!r) return err(404, 'Uploaded row not found');
+    if (!canAccessDomain(db, me, r.domainId)) return err(403, 'Not your domain');
+    if (body.hours !== undefined) r.hours = Math.round((Number(body.hours) || 0) * 100) / 100;
+    if (body.wbsCode !== undefined) r.wbsCode = body.wbsCode;
+    if (body.project !== undefined) r.project = body.project;
+    db.save();
+    return ok(r);
+  }
+  if (method === 'DELETE' && p[2]) {
+    const i = uploaded.findIndex((x) => x.id === p[2]);
+    if (i < 0) return err(404, 'Uploaded row not found');
+    if (!canAccessDomain(db, me, uploaded[i].domainId)) return err(403, 'Not your domain');
+    uploaded.splice(i, 1);
+    db.save();
+    return ok({ deleted: true });
   }
   return err(405, 'Method not allowed');
 }

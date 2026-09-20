@@ -215,6 +215,27 @@ export class VisibilityComponent implements OnInit {
       .reduce((s, u) => s + u.hours, 0) * 100) / 100;
   }
 
+  // ---- Uploaded edit modal ----
+  upSel = signal<{ name: string; iso: string; label: string } | null>(null);
+  openUp(name: string, day: Date): void {
+    if (!this.auth.isAdmin()) return;
+    this.upSel.set({
+      name, iso: isoDate(day),
+      label: day.toLocaleDateString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+    });
+  }
+  closeUp(): void { this.upSel.set(null); }
+  upDayRows = computed<UploadedRow[]>(() => {
+    const s = this.upSel(); if (!s) return [];
+    return this.uploaded().filter((u) => u.resourceName === s.name && u.workDate === s.iso);
+  });
+  upDayTotal = computed(() => Math.round(this.upDayRows().reduce((sm, u) => sm + u.hours, 0) * 100) / 100);
+  saveUploadHours(u: UploadedRow, val: string): void {
+    const h = parseFloat(val); if (isNaN(h) || h < 0) return;
+    this.api.updateUpload(u.id, { hours: h }).subscribe(() => this.load());
+  }
+  removeUpload(u: UploadedRow): void { this.api.deleteUpload(u.id).subscribe(() => this.load()); }
+
   // ---- Differences: per person per day, in-app (live plan) vs uploaded ----
   private norm(s: string): string { return s.toLowerCase().replace(/\s+/g, ' ').trim(); }
   diffRows = computed<DiffRow[]>(() => {
