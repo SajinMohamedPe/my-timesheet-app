@@ -6,6 +6,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { AuthService } from '../../core/services/auth.service';
 import { DomainContextService } from '../../core/services/domain-context.service';
 import { ApiService } from '../../core/services/api.service';
+import { ThemeService } from '../../core/services/theme.service';
 
 interface Feature { label: string; icon: string; desc: string; link: string; admin?: boolean; }
 interface NavItem { label: string; icon: string; link: string; admin?: boolean; }
@@ -73,6 +74,9 @@ interface NavGroup { heading: string; items: NavParent[]; }
           <div class="role">{{ roleLabel() }}</div>
         </div>
       </div>
+      <button class="signout" (click)="theme.toggle()" [title]="theme.dark() ? 'Switch to light mode' : 'Switch to dark mode'">
+        <mat-icon>{{ theme.dark() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+      </button>
       <button class="signout" (click)="resetDemo()" title="Reset demo data"><mat-icon>restart_alt</mat-icon></button>
       <button class="signout" (click)="signOut()"><mat-icon>logout</mat-icon><span>Sign Out</span></button>
     </header>
@@ -116,6 +120,7 @@ interface NavGroup { heading: string; items: NavParent[]; }
 export class ShellComponent implements OnInit {
   auth = inject(AuthService);
   ctx = inject(DomainContextService);
+  theme = inject(ThemeService);
   private router = inject(Router);
   private host = inject(ElementRef);
   private api = inject(ApiService);

@@ -1,15 +1,20 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../core/services/auth.service';
+import { ThemeService } from '../../core/services/theme.service';
 import { DEMO_CREDENTIALS } from '../../core/mock/seed';
 
 @Component({
   selector: 'dtt-login',
-  imports: [FormsModule],
+  imports: [FormsModule, MatIconModule],
   styleUrl: './login.component.scss',
   template: `
   <div class="login">
+    <button class="theme-toggle" (click)="theme.toggle()" [title]="theme.dark() ? 'Switch to light mode' : 'Switch to dark mode'">
+      <mat-icon>{{ theme.dark() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+    </button>
     <div class="panel-left">
       <div class="brand">
         <span class="bar"></span>
@@ -57,6 +62,7 @@ import { DEMO_CREDENTIALS } from '../../core/mock/seed';
   `,
 })
 export class LoginComponent {
+  theme = inject(ThemeService);
   private auth = inject(AuthService);
   private router = inject(Router);
 

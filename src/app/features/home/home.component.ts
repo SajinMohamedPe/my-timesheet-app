@@ -56,7 +56,7 @@ import { effect } from '@angular/core';
   `,
   styles: [`
     .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 22px; }
-    .tile { background: #fff; border: 1px solid var(--dtt-line); border-radius: 12px; padding: 20px; }
+    .tile { background: var(--dtt-card); border: 1px solid var(--dtt-line); border-radius: 12px; padding: 20px; }
     .tile mat-icon { color: var(--dtt-green); }
     .tile .v { font-size: 30px; font-weight: 700; margin-top: 8px; }
     .tile .l { color: var(--dtt-muted); font-size: 13px; }
@@ -64,11 +64,11 @@ import { effect } from '@angular/core';
     .qa { display: flex; gap: 12px; flex-wrap: wrap; }
     .qa a { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border: 1px solid var(--dtt-line);
       border-radius: 8px; text-decoration: none; color: var(--dtt-ink); font-weight: 500; }
-    .qa a:hover { background: #f2f5ec; }
+    .qa a:hover { background: var(--dtt-hover); }
     .qa mat-icon { color: var(--dtt-green); }
     .qa .reset { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border: 1px solid var(--dtt-line);
-      border-radius: 8px; background: #fff; color: var(--dtt-muted); font-weight: 500; cursor: pointer; }
-    .qa .reset:hover { background: #f7f8f9; }
+      border-radius: 8px; background: var(--dtt-card); color: var(--dtt-muted); font-weight: 500; cursor: pointer; }
+    .qa .reset:hover { background: var(--dtt-hover); }
   `],
 })
 export class HomeComponent implements OnInit {

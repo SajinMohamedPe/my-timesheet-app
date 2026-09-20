@@ -5,16 +5,16 @@
 .row { display: flex; align-items: center; gap: 12px; }
 .spacer { flex: 1; }
 .month { font-weight: 600; min-width: 130px; text-align: center; }
-.nav { border: 1px solid var(--dtt-line); background: #fff; border-radius: 8px; cursor: pointer; padding: 4px; display: flex; }
+.nav { border: 1px solid var(--dtt-line); background: var(--dtt-card); border-radius: 8px; cursor: pointer; padding: 4px; display: flex; }
 .nav:hover, .monthbtn:hover { border-color: var(--dtt-green); }
-.monthbtn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--dtt-line); background: #fff;
+.monthbtn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--dtt-line); background: var(--dtt-card);
   border-radius: 8px; cursor: pointer; padding: 6px 12px; }
 .monthbtn mat-icon { font-size: 18px; width: 18px; height: 18px; color: var(--dtt-muted); }
 .hiddendate { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .link { border: none; background: transparent; cursor: pointer; color: var(--dtt-muted); display: flex; align-items: center; gap: 2px; }
 .link mat-icon { font-size: 18px; width: 18px; height: 18px; }
 
-.btn { display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; padding: 8px 14px; cursor: pointer; font-size: 13px; font-weight: 600; border: 1px solid var(--dtt-line); background: #fff; }
+.btn { display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; padding: 8px 14px; cursor: pointer; font-size: 13px; font-weight: 600; border: 1px solid var(--dtt-line); background: var(--dtt-card); }
 .btn mat-icon { font-size: 18px; width: 18px; height: 18px; }
 .btn.green { background: var(--dtt-green); color: #fff; border-color: var(--dtt-green); }
 .btn.ghost { color: var(--dtt-green-dark); }
@@ -34,16 +34,24 @@
 .pending { background: repeating-linear-gradient(45deg, #f5a623, #f5a623 5px, #ffe4b5 5px, #ffe4b5 10px); }
 table.plan td.cell.pending { color: #6b4e00; }
 table.plan td.cell.mixed { color: #fff; }
-/* Differences grid: flagged mismatch cells */
-table.plan td.cell.diff { background: #fdeceb; color: #b4322f; font-weight: 800; box-shadow: inset 0 0 0 2px #e53935; }
+
+/* Over-8h alert: pulsing teal glow + "!" badge (not a legend colour, not black) */
+table.plan td.cell.over8 { position: relative; cursor: pointer; font-weight: 800;
+  animation: dtt-pulse 1.9s ease-in-out infinite; z-index: 1; }
+table.plan td.cell.over8::after, table.plan td.cell.diff::after {
+  content: '!'; position: absolute; top: 1px; right: 1px; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--dtt-alert); color: #fff; font-size: 10px; font-weight: 800; line-height: 14px; text-align: center;
+  z-index: 3; box-shadow: 0 1px 2px rgba(0,0,0,.35); }
+
+/* Differences grid: teal tint fill so mismatches pop out (not black) */
+table.plan td.cell.diff { background: var(--dtt-alert-soft); color: var(--dtt-alert-ink); font-weight: 800;
+  position: relative; cursor: pointer; animation: dtt-pulse 1.9s ease-in-out infinite; z-index: 1; }
 .diffnote { padding: 4px 20px 12px; }
-/* Over-8h highlight: red ring + bold so the admin can spot overallocation */
-table.plan td.cell.over8 { box-shadow: inset 0 0 0 2px #e53935; font-weight: 800; position: relative; z-index: 1; }
 table.plan td.cell.clickable { cursor: pointer; }
 table.plan td.cell.clickable:hover { filter: brightness(1.06); outline: 2px solid var(--dtt-green); outline-offset: -2px; }
-/* Employee name flagged when any day is over 8h */
-table.plan td.emp.warn { color: #b4322f; font-weight: 700; }
-.warnico { color: #e53935; font-size: 16px; width: 16px; height: 16px; vertical-align: middle; margin-left: 4px; }
+/* Employee name flagged when any day is over 8h (teal, not a legend colour) */
+table.plan td.emp.warn { color: var(--dtt-alert-ink); font-weight: 700; }
+.warnico { color: var(--dtt-alert); font-size: 16px; width: 16px; height: 16px; vertical-align: middle; margin-left: 4px; }
 
 /* ---- Admin day-edit modal ---- */
 .backdrop { position: fixed; inset: 0; background: rgba(20,22,24,.45); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -61,11 +69,11 @@ table.plan td.emp.warn { color: #b4322f; font-weight: 700; }
 .m-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
 .m-lbl { flex: 1; font-size: 13px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .m-inp { width: 70px; padding: 7px 8px; border: 1px solid var(--dtt-line); border-radius: 8px; font-size: 14px; font-weight: 700; text-align: center; }
-.m-inp:disabled { background: var(--dtt-line-soft, #eef0f2); color: var(--dtt-muted); }
+.m-inp:disabled { background: var(--dtt-line-soft, var(--dtt-line-soft)); color: var(--dtt-muted); }
 .unit { color: var(--dtt-muted); font-size: 12px; margin-left: -4px; }
 .m-del, .m-appr, .m-rej { border: none; background: transparent; cursor: pointer; display: flex; padding: 4px; border-radius: 6px; }
 .m-del { color: #c2c6ca; } .m-del:hover { color: #b4322f; background: #fdeceb; }
-.m-appr { color: var(--dtt-green-dark); } .m-appr:hover { background: var(--dtt-green-tint, #eef4e0); }
+.m-appr { color: var(--dtt-green-dark); } .m-appr:hover { background: var(--dtt-green-tint, var(--dtt-tint)); }
 .m-rej { color: #b4322f; } .m-rej:hover { background: #fdeceb; }
 .m-del mat-icon, .m-appr mat-icon, .m-rej mat-icon { font-size: 18px; width: 18px; height: 18px; }
 .m-foot { display: flex; justify-content: flex-end; margin-top: 18px; }
@@ -85,7 +93,7 @@ table.plan td.cell { font-weight: 700; }
 
 /* Grouped-block language, shared with the Timesheet screen */
 .block { border: 1px solid var(--dtt-line); border-radius: 11px; overflow: hidden; background: var(--dtt-card); }
-.block-h { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #f0f4e8;
+.block-h { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--dtt-tint);
   color: var(--dtt-green-dark); font-weight: 700; font-size: 14px; }
 .block-h .bi { font-size: 18px; width: 18px; height: 18px; }
 .block-h .bname { font-weight: 700; }
@@ -93,16 +101,16 @@ table.plan td.cell { font-weight: 700; }
 .block-body { padding: 12px 14px; }
 .block .gridwrap { padding: 8px; }
 table.plan { border-collapse: collapse; table-layout: fixed; width: 100%; }
-table.plan th.emp, table.plan td.emp { position: sticky; left: 0; background: var(--dtt-card, #fff); text-align: left; padding: 8px 12px; width: 180px; white-space: nowrap; z-index: 1; }
+table.plan th.emp, table.plan td.emp { position: sticky; left: 0; background: var(--dtt-card); text-align: left; padding: 4px 12px; width: 180px; white-space: nowrap; z-index: 1; }
 /* Day columns have no fixed width: with table-layout:fixed they share the
    remaining space equally, so the grid always fills the panel (no right gap)
    and stays uniform. min-width on the table keeps them legible + scrollable. */
-table.plan th.d { text-align: center; font-size: 11px; color: var(--dtt-muted); padding: 4px 0; }
+table.plan th.d { text-align: center; font-size: 11px; color: var(--dtt-muted); padding: 2px 0; }
 table.plan th.d small { display: block; font-size: 9px; }
-table.plan td.cell { height: 34px; border: 1px solid #eef0f2; text-align: center; font-size: 10px; color: #fff; }
+table.plan td.cell { height: 24px; border: 1px solid var(--dtt-line-soft); text-align: center; font-size: 10px; color: #fff; line-height: 1; }
 table.plan td.cell.empty { color: var(--dtt-muted); }
-table.plan td.weekend { background-color: #eef0f2; }
-.ava { display: inline-flex; width: 22px; height: 22px; border-radius: 50%; background: var(--dtt-green); color: #fff; align-items: center; justify-content: center; font-size: 11px; margin-right: 8px; }
+table.plan td.weekend { background-color: var(--dtt-weekend); }
+.ava { display: inline-flex; width: 20px; height: 20px; border-radius: 50%; background: var(--dtt-green); color: #fff; align-items: center; justify-content: center; font-size: 11px; margin-right: 8px; }
 .empty { padding: 20px; text-align: center; }
 .small { font-size: 12px; }
 h3 { margin: 0 0 6px; }

@@ -179,12 +179,12 @@
 
       <div class="m-total" [class.over]="daySelTotal() > 8">
         Day total: <b>{{ daySelTotal().toFixed(2) }}h</b>
-        @if (daySelTotal() > 8) { <span class="chip red">Over 8h — please review</span> }
+        @if (daySelTotal() > 8) { <span class="chip alert">Over 8h — please review</span> }
       </div>
       @if (uploadedForSel() > 0) {
         <div class="m-ref" [class.mismatch]="uploadedForSel() !== daySelTotal()">
           Uploaded timesheet: <b>{{ uploadedForSel().toFixed(2) }}h</b>
-          @if (uploadedForSel() !== daySelTotal()) { <span class="chip red">doesn't match — reconcile</span> }
+          @if (uploadedForSel() !== daySelTotal()) { <span class="chip alert">doesn't match — reconcile</span> }
           @else { <span class="chip green">matches</span> }
         </div>
       }

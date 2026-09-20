@@ -19,12 +19,49 @@ html {
   --dtt-ink: #26282a;
   --dtt-muted: #6b6f73;
   --dtt-line: #e4e7ea;
+  --dtt-line-soft: #eef0f2;
   --dtt-bg: #f5f6f7;
   --dtt-card: #ffffff;
+  --dtt-hover: #f2f5ec;     // subtle green-tinted hover
+  --dtt-weekend: #f4f6f8;   // weekend / disabled cell shading
+  --dtt-tint: #f0f4e8;      // green tint (block headers, active nav)
+  --dtt-tint-strong: #eaf2da;
+
+  // Violation alert accent — teal (not in the legend, not black).
+  --dtt-alert: #00a5b5;
+  --dtt-alert-ink: #007a86;
+  --dtt-alert-soft: #d9f2f5;
+  --dtt-alert-glow: rgba(0, 165, 181, .55);
+  --dtt-alert-ring: rgba(0, 165, 181, .5);
+
+  color-scheme: light;
 
   // Bend Material's primary onto Deloitte green.
   --mat-sys-primary: #6a9a17;
   --mat-sys-on-primary: #ffffff;
+}
+
+:root[data-theme="dark"] {
+  --dtt-green: #93c93a;
+  --dtt-green-dark: #a7d94b;
+  --dtt-ink: #e6e9ec;
+  --dtt-muted: #9aa3ab;
+  --dtt-line: #2c343b;
+  --dtt-line-soft: #232a30;
+  --dtt-bg: #0f1418;
+  --dtt-card: #171d22;
+  --dtt-hover: #1e262c;
+  --dtt-weekend: #1b2126;
+  --dtt-tint: #212d16;
+  --dtt-tint-strong: #26331a;
+
+  --dtt-alert: #24c2d2;
+  --dtt-alert-ink: #7fe0ea;
+  --dtt-alert-soft: #10333a;
+  --dtt-alert-glow: rgba(36, 194, 210, .5);
+  --dtt-alert-ring: rgba(36, 194, 210, .5);
+
+  color-scheme: dark;
 }
 
 html, body { height: 100%; }
@@ -56,9 +93,9 @@ body {
 }
 .chip {
   display: inline-block; padding: 2px 10px; border-radius: 999px;
-  font-size: 12px; font-weight: 600; background: #eef4e0; color: var(--dtt-green-dark);
+  font-size: 12px; font-weight: 600; background: var(--dtt-tint); color: var(--dtt-green-dark);
 }
-.chip.grey { background: #eceef0; color: #555; }
+.chip.grey { background: var(--dtt-line-soft); color: #555; }
 .chip.amber { background: #fdf1d6; color: #9a6b00; }
 .chip.red { background: #fde3e3; color: #b23; }
 .chip.green { background: #e5f2d3; color: var(--dtt-green-dark); }
@@ -69,7 +106,23 @@ table.dtt th {
   color: var(--dtt-muted); padding: 12px 14px; border-bottom: 2px solid var(--dtt-line);
 }
 table.dtt td { padding: 12px 14px; border-bottom: 1px solid var(--dtt-line); }
-table.dtt tr:hover td { background: #fafbfa; }
+table.dtt tr:hover td { background: var(--dtt-hover); }
+
+/* Violation / needs-action treatment — a vivid TEAL (not any legend colour and
+   not black) with a pulsing glow + a "!" badge, so it reads as a live,
+   actionable alert. Teal tokens are defined in the :root / dark blocks. */
+@keyframes dtt-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px var(--dtt-alert), 0 0 9px 1px var(--dtt-alert-glow), 0 0 0 0 var(--dtt-alert-ring); }
+  50%      { box-shadow: 0 0 0 2px var(--dtt-alert), 0 0 9px 1px var(--dtt-alert-glow), 0 0 0 7px transparent; }
+}
+@keyframes dtt-chip-glow {
+  0%, 100% { box-shadow: 0 0 0 0 var(--dtt-alert-ring); }
+  50%      { box-shadow: 0 0 0 5px transparent; }
+}
+.chip.alert { background: var(--dtt-alert); color: #fff; animation: dtt-chip-glow 1.9s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .dtt-pulse, [class*="over8"], .diff, .chip.alert { animation: none !important; }
+}
 
 .toolbar-btn { border-radius: 8px !important; }
 
@@ -77,9 +130,9 @@ table.dtt tr:hover td { background: #fafbfa; }
 .block { background: var(--dtt-card); border: 1px solid var(--dtt-line); border-radius: 12px;
   overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,.03); }
 .block + .block { margin-top: 16px; }
-.block-h { display: flex; align-items: center; gap: 8px; padding: 11px 16px; background: #f0f4e8;
+.block-h { display: flex; align-items: center; gap: 8px; padding: 11px 16px; background: var(--dtt-tint);
   color: var(--dtt-green-dark); font-weight: 700; font-size: 14px; }
-.block-h.grey { background: #eef0f2; color: #555; }
+.block-h.grey { background: var(--dtt-line-soft); color: #555; }
 .block-h .bi { font-size: 18px; width: 18px; height: 18px; }
 .block-h .bname { font-weight: 700; }
 .block-h .bdesc { font-weight: 400; opacity: .85; font-size: 13px; }

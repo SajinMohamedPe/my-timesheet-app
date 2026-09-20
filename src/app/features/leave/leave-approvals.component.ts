@@ -53,8 +53,8 @@ const TYPE_LABEL: Record<string, string> = {
   `,
   styles: [`
     .tabs { display: flex; gap: 6px; margin-bottom: 14px; }
-    .tabs button { border: 1px solid var(--dtt-line); background: #fff; border-radius: 8px; padding: 8px 16px; cursor: pointer; font-weight: 600; font-size: 13px; color: var(--dtt-muted); }
-    .tabs button.active { background: #eaf2da; color: var(--dtt-green-dark); border-color: #cfe3a8; }
+    .tabs button { border: 1px solid var(--dtt-line); background: var(--dtt-card); border-radius: 8px; padding: 8px 16px; cursor: pointer; font-weight: 600; font-size: 13px; color: var(--dtt-muted); }
+    .tabs button.active { background: var(--dtt-tint-strong); color: var(--dtt-green-dark); border-color: #cfe3a8; }
     button.approve, button.reject { display: inline-flex; align-items: center; gap: 3px; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 12px; font-weight: 600; margin-right: 6px; color: #fff; }
     button.approve { background: var(--dtt-green); }
     button.reject { background: #b4322f; }

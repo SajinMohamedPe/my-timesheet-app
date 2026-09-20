@@ -7,7 +7,7 @@
 .spacer { flex: 1; }
 
 .weeknav { display: flex; align-items: center; gap: 8px; position: relative; }
-.weeknav button { border: 1px solid var(--dtt-line); background: #fff; border-radius: 8px; cursor: pointer; padding: 6px; display: flex; align-items: center; }
+.weeknav button { border: 1px solid var(--dtt-line); background: var(--dtt-card); border-radius: 8px; cursor: pointer; padding: 6px; display: flex; align-items: center; }
 .weeknav button:hover { border-color: var(--dtt-green); }
 .rangebtn { gap: 8px; padding: 6px 12px !important; }
 .rangebtn mat-icon { font-size: 18px; width: 18px; height: 18px; color: var(--dtt-muted); }
@@ -31,7 +31,7 @@ table.wk { width: 100%; min-width: 780px; border-collapse: separate; border-spac
 col.c-rh { width: 240px; }
 col.c-day { width: 64px; }
 col.c-wk { width: 78px; }
-$soft: #eef0f2;
+$soft: var(--dtt-line-soft);
 
 /* Column header */
 thead th { padding: 4px 6px 12px; font-size: 12px; color: var(--dtt-muted); font-weight: 600; vertical-align: bottom; }
@@ -45,7 +45,7 @@ thead th.c-wk { text-align: center; border-left: 1px solid var(--dtt-line-soft, 
 tbody.gap td { height: 14px; padding: 0; border: none; background: transparent; }
 
 /* Group blocks: bordered + rounded, drawn with separate borders */
-tbody.grp td { background: #fff; }
+tbody.grp td { background: var(--dtt-card); }
 tbody.grp tr.datarow td, tbody.grp tr.addrow td { border-bottom: 1px solid var(--dtt-line-soft, #{$soft}); }
 tbody.grp tr:first-child > td { border-top: 1px solid var(--dtt-line); }
 tbody.grp tr:last-child > td { border-bottom: 1px solid var(--dtt-line); }
@@ -61,8 +61,8 @@ tbody.grp tr.datarow td.c-day, tbody.grp tr.datarow td.c-wk,
 tbody.grp tr.addrow td.c-day, tbody.grp tr.addrow td.c-wk { border-left: 1px solid var(--dtt-line-soft, #{$soft}); }
 
 /* Group header row */
-tr.grouprow > td { background: #f0f4e8; padding: 0; }
-tbody.grp.abs tr.grouprow > td { background: #eef0f2; }
+tr.grouprow > td { background: var(--dtt-tint); padding: 0; }
+tbody.grp.abs tr.grouprow > td { background: var(--dtt-line-soft); }
 td.grouphead { padding: 0; }
 .block-h { display: flex; align-items: center; gap: 8px; width: 100%; border: none; cursor: pointer; text-align: left;
   padding: 11px 14px; background: transparent; color: var(--dtt-green-dark); font-weight: 700; font-size: 14px; font-family: inherit; }
@@ -88,8 +88,8 @@ td.c-day { padding: 2px; text-align: center; }
 td.c-day.cell input { width: 100%; max-width: 60px; padding: 8px 2px; text-align: center; border: 1px solid transparent;
   border-radius: 6px; font-size: 14px; font-weight: 700; background: transparent; color: var(--dtt-ink); }
 td.c-day.cell input:hover { border-color: var(--dtt-line); }
-td.c-day.cell input:focus { outline: none; border-color: var(--dtt-green); background: #fff; }
-tbody.grp tr.datarow td.c-day.weekend, tbody.grp tr.addrow td.c-day.weekend { background: #f4f6f8; }
+td.c-day.cell input:focus { outline: none; border-color: var(--dtt-green); background: var(--dtt-card); }
+tbody.grp tr.datarow td.c-day.weekend, tbody.grp tr.addrow td.c-day.weekend { background: var(--dtt-weekend); }
 
 /* Leave cells: black + bold, pending amber background */
 tbody.grp td.c-day.leave.pending  { background: #ffe9bf; box-shadow: inset 3px 0 0 #f5a623; }
@@ -106,7 +106,7 @@ td.c-wk.total { text-align: center; font-weight: 700; color: var(--dtt-ink); fon
 .addrow td { padding: 8px 14px; }
 
 /* Daily total block */
-tbody.totalsec td { background: #fafbf7; padding: 12px 6px; text-align: center; font-weight: 700;
+tbody.totalsec td { background: var(--dtt-card); padding: 12px 6px; text-align: center; font-weight: 700;
   font-variant-numeric: tabular-nums; border-top: 1px solid var(--dtt-line); border-bottom: 1px solid var(--dtt-line); }
 tbody.totalsec td.c-day, tbody.totalsec td.c-wk { border-left: 1px solid var(--dtt-line-soft, #{$soft}); }
 tbody.totalsec td:first-child { border-left: 1px solid var(--dtt-line); text-align: left; padding-left: 14px;
@@ -114,8 +114,12 @@ tbody.totalsec td:first-child { border-left: 1px solid var(--dtt-line); text-ali
 tbody.totalsec td:last-child { border-right: 1px solid var(--dtt-line);
   border-top-right-radius: 11px; border-bottom-right-radius: 11px; }
 td.c-wk.grand { color: var(--dtt-green-dark); font-size: 15px; }
-/* Over-8h daily total highlight */
-tbody.totalsec td.c-day.over8 { color: #b4322f; background: #fdeceb; box-shadow: inset 0 0 0 2px #e53935; }
+/* Over-8h daily total: teal alert (not a legend colour) + "!" badge + pulse */
+tbody.totalsec td.c-day.over8 { position: relative; background: var(--dtt-alert-soft); color: var(--dtt-alert-ink); font-weight: 800;
+  animation: dtt-pulse 1.9s ease-in-out infinite; }
+tbody.totalsec td.c-day.over8::after {
+  content: '!'; position: absolute; top: 3px; right: 4px; width: 15px; height: 15px; border-radius: 50%;
+  background: var(--dtt-alert); color: #fff; font-size: 10px; font-weight: 800; line-height: 15px; text-align: center; }
 
 .hint { padding: 12px 20px 16px; }
 .small { font-size: 12px; }

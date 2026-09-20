@@ -1,7 +1,11 @@
-.login { display: flex; min-height: 100vh; }
+.login { display: flex; min-height: 100vh; position: relative; }
+.theme-toggle { position: absolute; top: 16px; right: 16px; z-index: 5; width: 40px; height: 40px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.35); background: rgba(0,0,0,.15); color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; }
+.theme-toggle mat-icon { font-size: 20px; width: 20px; height: 20px; }
 
 .panel-left {
-  width: 460px; max-width: 45%; padding: 56px 48px; background: #fff;
+  width: 460px; max-width: 45%; padding: 56px 48px; background: var(--dtt-card);
   display: flex; flex-direction: column; justify-content: center;
 }
 .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; }

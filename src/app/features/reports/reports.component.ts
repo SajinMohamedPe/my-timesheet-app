@@ -54,7 +54,7 @@ import { User } from '../../core/models/models';
               @if (overUsers().has(u.id)) { <mat-icon class="warnico" title="Has a day over 8h this month">warning</mat-icon> }
             </div>
             <div class="s">
-              @if (overUsers().has(u.id)) { <span class="chip red">Over 8h</span> }
+              @if (overUsers().has(u.id)) { <span class="chip alert">Over 8h</span> }
               @else { <span class="chip green">{{ u.active ? 'Active' : 'Inactive' }}</span> }
             </div>
           </div>
