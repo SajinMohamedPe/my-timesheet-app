@@ -68,6 +68,9 @@ export class VisibilityComponent implements OnInit {
     return Array.from({ length: new Date(y, m, 0).getDate() }, (_, i) => new Date(y, m - 1, i + 1));
   });
 
+  /** Min table width so day columns stay legible + scrollable (name col + 42px/day). */
+  gridMinWidth = computed(() => 160 + this.daysInMonth().length * 42);
+
   constructor() {
     effect(() => { this.ctx.selectedId(); this.month(); this.load(); });
   }

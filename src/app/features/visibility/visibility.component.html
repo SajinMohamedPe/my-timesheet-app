@@ -63,7 +63,7 @@
         <div class="block-h"><mat-icon class="bi">groups</mat-icon><span class="bname">Team</span>
           <span class="bdesc">{{ ctx.selected()?.name ?? 'All domains' }} · {{ monthLabel() }}</span></div>
       <div class="gridwrap">
-        <table class="plan" [style.min-width.px]="160 + daysInMonth().length * 42">
+        <table class="plan" [style.min-width.px]="gridMinWidth()">
           <thead>
             <tr>
               <th class="emp">Employee</th>
@@ -103,7 +103,7 @@
       <div class="block-h"><mat-icon class="bi">upload_file</mat-icon><span class="bname">Uploaded Timesheet</span>
         <span class="bdesc">{{ monthLabel() }} · external hours for staff (from the uploaded file)</span></div>
       <div class="gridwrap">
-        <table class="plan" [style.min-width.px]="160 + daysInMonth().length * 42">
+        <table class="plan" [style.min-width.px]="gridMinWidth()">
           <thead>
             <tr>
               <th class="emp">Resource</th>
@@ -138,7 +138,7 @@
         <span class="bdesc">in-app (live plan) vs uploaded · click a flagged day to fix it</span></div>
       @if (diffPeople().length) {
         <div class="gridwrap">
-          <table class="plan" [style.min-width.px]="160 + daysInMonth().length * 42">
+          <table class="plan" [style.min-width.px]="gridMinWidth()">
             <thead>
               <tr>
                 <th class="emp">Employee</th>

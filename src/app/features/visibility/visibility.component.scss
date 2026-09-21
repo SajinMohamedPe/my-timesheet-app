@@ -49,7 +49,7 @@ table.plan td.cell.clickable { cursor: pointer; }
 table.plan td.cell.clickable:hover { filter: brightness(1.06); outline: 2px solid var(--dtt-green); outline-offset: -2px; }
 /* Employee name flagged when any day is over 8h (teal, not a legend colour) */
 table.plan td.emp.warn { color: var(--dtt-alert-ink); font-weight: 700; }
-.warnico { color: var(--dtt-alert); font-size: 16px; width: 16px; height: 16px; vertical-align: middle; margin-left: 4px; }
+.warnico { color: var(--dtt-alert); font-size: 16px; width: 16px; height: 16px; vertical-align: middle; }
 
 /* ---- Admin day-edit modal ---- */
 .backdrop { position: fixed; inset: 0; background: rgba(20,22,24,.45); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -102,7 +102,7 @@ table.plan { border-collapse: collapse; table-layout: fixed; width: 100%; }
 table.plan th.emp, table.plan td.emp { position: sticky; left: 0; background: var(--dtt-card); text-align: left; padding: 3px 10px; width: 160px; z-index: 1; font-size: 12px; line-height: 1.15;
   border-right: 1px solid var(--dtt-line); border-bottom: 1px solid var(--dtt-line-soft); }
 table.plan thead th.emp { border-bottom: 2px solid var(--dtt-line); }
-.empcell { display: flex; align-items: center; gap: 0; }
+.empcell { display: flex; align-items: center; gap: 5px; }
 .empcell .nm { white-space: normal; overflow-wrap: anywhere; }
 /* Day columns have no fixed width: with table-layout:fixed they share the
    remaining space equally, so the grid always fills the panel (no right gap)
@@ -113,7 +113,7 @@ table.plan th.d small { display: block; font-size: 9px; }
 table.plan td.cell { height: 16px; border: 1px solid var(--dtt-line-soft); text-align: center; font-size: 10px; color: #fff; line-height: 1; }
 table.plan td.cell.empty { color: var(--dtt-muted); }
 table.plan td.weekend { background-color: var(--dtt-weekend); }
-.ava { display: inline-flex; width: 16px; height: 16px; border-radius: 50%; background: var(--dtt-green); color: #fff; align-items: center; justify-content: center; font-size: 9px; margin-right: 7px; }
+.ava { display: inline-flex; width: 16px; height: 16px; border-radius: 50%; background: var(--dtt-green); color: #fff; align-items: center; justify-content: center; font-size: 9px; flex-shrink: 0; }
 .empty { padding: 20px; text-align: center; }
 .small { font-size: 12px; }
 h3 { margin: 0 0 6px; }
