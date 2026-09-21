@@ -178,3 +178,16 @@
     </div>
   </div>
 }
+
+<!-- Revoke admin confirmation (Super Admin) -->
+<dtt-confirm-dialog
+  [open]="!!revokeUser()"
+  title="Revoke admin?"
+  [message]="(revokeUser()?.name ?? '') + ' will lose all admin rights and become a regular employee.'"
+  detail="Their allocated domains are cleared. You can grant admin again later."
+  confirmLabel="Revoke admin"
+  cancelLabel="Cancel"
+  [danger]="true"
+  (confirm)="confirmRevoke()"
+  (cancel)="revokeUser.set(null)" />
+

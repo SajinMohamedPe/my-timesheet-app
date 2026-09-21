@@ -5,13 +5,14 @@ import { AuthService } from '../../core/services/auth.service';
 import { DomainContextService } from '../../core/services/domain-context.service';
 import { ApiService, WbsCodeView } from '../../core/services/api.service';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { Domain, User } from '../../core/models/models';
 
 type Tab = 'DOMAINS' | 'WBS' | 'USERS';
 
 @Component({
   selector: 'dtt-admin-panel',
-  imports: [FormsModule, MatIconModule, PageHeaderComponent],
+  imports: [FormsModule, MatIconModule, PageHeaderComponent, ConfirmDialogComponent],
   templateUrl: './admin-panel.component.html',
   styleUrl: './admin-panel.component.scss',
 })
@@ -36,6 +37,8 @@ export class AdminPanelComponent implements OnInit {
   // Super-admin domain allocation modal
   allocUser = signal<User | null>(null);
   allocSel = signal<Record<string, boolean>>({});
+  // Revoke-admin confirmation modal
+  revokeUser = signal<User | null>(null);
 
   constructor() {
     if (this.auth.isSuperAdmin()) this.tab.set('DOMAINS');
@@ -120,9 +123,10 @@ export class AdminPanelComponent implements OnInit {
     if (!domainIds.length) return; // an admin must manage at least one domain
     this.api.grantAdmin(u.id, domainIds).subscribe(() => { this.allocUser.set(null); this.load(); });
   }
-  revoke(u: User): void {
-    if (!confirm(`Revoke admin from ${u.name}? They become a regular employee.`)) return;
-    this.api.revokeAdmin(u.id).subscribe(() => this.load());
+  revoke(u: User): void { this.revokeUser.set(u); }
+  confirmRevoke(): void {
+    const u = this.revokeUser(); if (!u) return;
+    this.api.revokeAdmin(u.id).subscribe(() => { this.revokeUser.set(null); this.load(); });
   }
   roleChip(u: User): string {
     return u.role === 'SUPER_ADMIN' ? 'Super Admin' : u.role === 'DOMAIN_ADMIN' ? 'Admin' : 'Employee';
