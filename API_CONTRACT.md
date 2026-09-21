@@ -321,5 +321,15 @@ Users: `super` (SUPER_ADMIN), `admin` (DOMAIN_ADMIN, both domains), `alice`/`bob
 - **Frontend**: build (`ng build`) → deploy `dist/deloitte-timesheet/browser` to **Azure Static Web Apps**. Configure SWA to proxy `/api/*` to the backend (or set `apiBase` to the backend URL + CORS).
 - **CI/CD**: GitHub Actions — one workflow builds/tests/pushes the backend image to ACR and deploys; another builds and deploys the SWA. Use OIDC federation to Azure (no long-lived secrets).
 - **Config/secrets**: Azure Key Vault referenced from Container Apps; JWT signing key and DB creds live there.
-```
-```
+
+---
+
+## 8. Presentation-only behaviour (no backend work)
+
+These are handled entirely by the frontend from the JSON already specified above — listed here so the backend agent does **not** try to add endpoints or fields for them:
+
+- **Over-allocation flagging.** Any day whose total (work + non-rejected leave + auto bank holiday) exceeds **8h** is highlighted with an alert style and a "!" badge on the **Live Plan**, **Uploaded Timesheet** and **Differences** grids, and the person's name is flagged. This is computed client-side from `/api/visibility` and `/api/uploads` data. The backend returns raw hours only.
+- **Differences / reconciliation.** The per-person-per-day comparison of in-app vs uploaded hours is computed client-side by matching normalised names + dates; no diff endpoint is required.
+- **Irish bank-holiday & weekend overlays.** Auto-marked client-side (see §1). The backend stores no records for these, but any server-side report/day-count logic must apply the **same** holiday calendar so totals agree.
+- **Dark mode.** A per-viewer theme toggle (persisted in `localStorage`), available to all roles. No backend involvement.
+- **2-decimal display, colour legend, name-column wrapping.** Pure formatting.

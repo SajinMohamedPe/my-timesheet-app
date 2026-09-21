@@ -17,7 +17,9 @@ Angular 20 UI for a **contractor timesheet system** for Deloitte Ireland.
   modal and goes to the **domain admin for approval** (pending cells are amber).
 - **Visibility Plan** — colour-coded month grid; admin tabs for **Live Plan /
   Uploaded Timesheet / Differences**, xlsx upload, and one-click **Project
-  Summary** download (Excel/PDF, this domain or all domains).
+  Summary** download (Excel/PDF, this domain or all domains). Days over **8h**
+  are flagged (alert tint + "!" badge) across all three grids; admins click a
+  cell to edit that person/day inline.
 - **Reports** — per-employee and consolidated monthly exports (Excel/PDF).
 - **Leave approvals** — domain-admin queue with approve/reject.
 - **Admin Panel** — Domains, WBS codes (with **effective-dated names**), Users & Roles.
@@ -25,6 +27,8 @@ Angular 20 UI for a **contractor timesheet system** for Deloitte Ireland.
 - **Roles & scoping** — Super Admin / Domain Admin / Employee. A "domain" is an
   internal Deloitte engagement (**AIM**, **Fisheries**); admins are scoped to
   their domain(s) and get a switcher when they hold several.
+- **Dark mode** — per-user theme toggle (top bar), remembered across sessions,
+  defaults to the OS preference. Available to every role.
 
 ## Run locally
 
