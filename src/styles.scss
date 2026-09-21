@@ -27,12 +27,13 @@ html {
   --dtt-tint: #f0f4e8;      // green tint (block headers, active nav)
   --dtt-tint-strong: #eaf2da;
 
-  // Violation alert accent — teal (not in the legend, not black).
-  --dtt-alert: #00a5b5;
-  --dtt-alert-ink: #007a86;
-  --dtt-alert-soft: #d9f2f5;
-  --dtt-alert-glow: rgba(0, 165, 181, .55);
-  --dtt-alert-ring: rgba(0, 165, 181, .5);
+  // Violation alert accent — a deep crimson (distinct from the brighter Annual
+  // Leave red; violations also carry a "!" badge + pulse so they never read as leave).
+  --dtt-alert: #c8102e;
+  --dtt-alert-ink: #a00c24;
+  --dtt-alert-soft: #fbe1e5;
+  --dtt-alert-glow: rgba(200, 16, 46, .5);
+  --dtt-alert-ring: rgba(200, 16, 46, .5);
 
   color-scheme: light;
 
@@ -55,11 +56,11 @@ html {
   --dtt-tint: #212d16;
   --dtt-tint-strong: #26331a;
 
-  --dtt-alert: #24c2d2;
-  --dtt-alert-ink: #7fe0ea;
-  --dtt-alert-soft: #10333a;
-  --dtt-alert-glow: rgba(36, 194, 210, .5);
-  --dtt-alert-ring: rgba(36, 194, 210, .5);
+  --dtt-alert: #ff5a6a;
+  --dtt-alert-ink: #ff9aa4;
+  --dtt-alert-soft: #3a1a1f;
+  --dtt-alert-glow: rgba(255, 90, 106, .5);
+  --dtt-alert-ring: rgba(255, 90, 106, .5);
 
   color-scheme: dark;
 }

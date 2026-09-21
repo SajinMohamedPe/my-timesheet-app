@@ -29,7 +29,7 @@ const LEAVE_COLORS: Record<LeaveType, string> = {
   ANNUAL: 'annual', SICK: 'sick', TRAINING: 'training', INTERNAL: 'internal', BANK_HOLIDAY: 'bank',
 };
 const LEAVE_HEX: Record<LeaveType, string> = {
-  ANNUAL: '#e53935', SICK: '#ab30c4', TRAINING: '#f4b400', INTERNAL: '#1976d2', BANK_HOLIDAY: '#607d8b',
+  ANNUAL: '#e53935', SICK: '#ab30c4', TRAINING: '#ffcf2e', INTERNAL: '#1976d2', BANK_HOLIDAY: '#607d8b',
 };
 const LEAVE_LABELS: Record<LeaveType, string> = {
   ANNUAL: 'Annual Leave', SICK: 'Sick Leave', TRAINING: 'Deloitte Training',

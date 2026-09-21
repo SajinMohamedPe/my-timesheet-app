@@ -28,7 +28,7 @@
 .work { background: #7cb518; }
 .annual { background: #e53935; }
 .sick { background: #ab30c4; }
-.training { background: #f4b400; }
+.training { background: #ffcf2e; }
 .internal { background: #1976d2; }
 .bank { background: #607d8b; }
 .pending { background: repeating-linear-gradient(45deg, #f5a623, #f5a623 5px, #ffe4b5 5px, #ffe4b5 10px); }
@@ -101,16 +101,17 @@ table.plan td.cell { font-weight: 700; }
 .block-body { padding: 12px 14px; }
 .block .gridwrap { padding: 8px; }
 table.plan { border-collapse: collapse; table-layout: fixed; width: 100%; }
-table.plan th.emp, table.plan td.emp { position: sticky; left: 0; background: var(--dtt-card); text-align: left; padding: 4px 12px; width: 180px; white-space: nowrap; z-index: 1; }
+table.plan th.emp, table.plan td.emp { position: sticky; left: 0; background: var(--dtt-card); text-align: left; padding: 1px 12px; width: 180px; white-space: nowrap; z-index: 1; font-size: 12px; line-height: 1; }
 /* Day columns have no fixed width: with table-layout:fixed they share the
    remaining space equally, so the grid always fills the panel (no right gap)
-   and stays uniform. min-width on the table keeps them legible + scrollable. */
+   and stays uniform. min-width on the table keeps them legible + scrollable.
+   Cells are short (wider than tall) so records don't look stretched. */
 table.plan th.d { text-align: center; font-size: 11px; color: var(--dtt-muted); padding: 2px 0; }
 table.plan th.d small { display: block; font-size: 9px; }
-table.plan td.cell { height: 24px; border: 1px solid var(--dtt-line-soft); text-align: center; font-size: 10px; color: #fff; line-height: 1; }
+table.plan td.cell { height: 18px; border: 1px solid var(--dtt-line-soft); text-align: center; font-size: 10px; color: #fff; line-height: 1; }
 table.plan td.cell.empty { color: var(--dtt-muted); }
 table.plan td.weekend { background-color: var(--dtt-weekend); }
-.ava { display: inline-flex; width: 20px; height: 20px; border-radius: 50%; background: var(--dtt-green); color: #fff; align-items: center; justify-content: center; font-size: 11px; margin-right: 8px; }
+.ava { display: inline-flex; width: 16px; height: 16px; border-radius: 50%; background: var(--dtt-green); color: #fff; align-items: center; justify-content: center; font-size: 9px; margin-right: 7px; }
 .empty { padding: 20px; text-align: center; }
 .small { font-size: 12px; }
 h3 { margin: 0 0 6px; }
