@@ -61,8 +61,10 @@ src/app/
       api.service.ts            Typed HttpClient wrapper for all endpoints
       domain-context.service.ts The domain switcher state (selectedId)
       export.service.ts         Client-side Excel/PDF generation
+      theme.service.ts          Dark/light toggle (signal); persists dtt.theme; OS default
     guards/guards.ts            authGuard / adminGuard / superAdminGuard
-    util/dates.ts               Sun–Sat week helpers; isoDate() uses LOCAL date parts
+    util/dates.ts               Sun–Sat week helpers; isoDate() uses LOCAL date parts;
+                                irishBankHolidays()/isIrishBankHoliday(); BANK_HOLIDAY_HOURS=7.25
   shared/
     page-header.component.ts    Gradient icon chip + title + breadcrumb
     search-select.component.ts  Reusable type-to-filter autocomplete ("Add …")
@@ -85,8 +87,14 @@ src/app/
 from `withInterceptors([...])` in `src/app/app.config.ts`. No component/service
 changes needed — they already call the endpoints in `API_CONTRACT.md`.
 
-**Mock store versioning:** `mock-db.ts` uses a `STORAGE_KEY` (currently `v2`).
+**Mock store versioning:** `mock-db.ts` uses a `STORAGE_KEY` (currently `v3`).
 Bump it whenever the seed/model shape changes so stale localStorage is discarded.
+
+**Theming:** all colours are CSS custom-property tokens in `src/styles.scss`
+(light `:root` + `:root[data-theme="dark"]`, plus `color-scheme`). `ThemeService`
+stamps `data-theme` on `<html>` and persists the choice; a toggle is in the top
+bar (and on the login screen) for **every** role. Never hard-code hex in
+components — use the `--dtt-*` tokens so both themes work.
 
 ---
 
@@ -105,6 +113,7 @@ localStorage; guards then allow entry. Real backend: JWT access+refresh.
   employees.
 - **Domain switcher** (top-right, **admins only**) sets the active domain that
   all scoped screens filter by. Hidden for employees (see decision #3).
+- **Dark-mode toggle** (top bar, all roles) flips light/dark via `ThemeService`.
 - **Reset demo data** ⟳ icon (also on Home) reseeds the mock.
 - **Sidebar** groups: CORE (Time Tracking → Timesheets, Visibility Plan, and for
   admins Leave Approvals/Reports/Timesheet Audit; plus Billing/Forecasting/
@@ -136,14 +145,32 @@ for admins), team size (admins). Quick-action links + Reset demo data.
 
 ### Visibility Plan (`/visibility`)
 - Month grid, one row per person, cells colour-coded by the legend (on-site
-  chargeable = green, annual/sick/training/internal/bank-holiday, pending =
-  hatched). Weekends auto Bank Holiday. Employees see only themselves.
+  chargeable = green, annual = red, sick = magenta, training = **yellow**,
+  internal = blue, bank holiday = blue-grey, pending = amber hatch). A day cell
+  shows **both** work and non-rejected leave (a mixed day is a split gradient).
+  Employees see only themselves — but across **all** their own domains.
+- **Auto-marked days:** weekends **and** every **Irish public (bank) holiday**
+  are pre-filled as Bank Holiday (7.25h) with no leave record needed
+  (`dates.ts` computes the Republic-of-Ireland calendar client-side).
+- **Over-8h flagging (anomaly styling):** any day whose total (work + leave +
+  auto bank holiday) exceeds 8h is drawn with a **crimson alert tint + pulsing
+  "!" badge** (a deliberate non-legend colour — see decision #14), and the
+  person's name is flagged. The **same** treatment marks Differences mismatches,
+  so an anomaly reads identically on every grid.
+- **Day-edit modal (admins):** clicking any day cell opens a modal to edit that
+  person/day — add/edit/delete time and leave and approve/reject leave inline.
+  It uses the existing `PUT`/`DELETE /api/time-entries|leave/{id}` endpoints
+  (no new endpoints); admin edits to others are audited.
 - **Admins** get three tabs + tools:
   - **Live Plan** — data logged in this app.
-  - **Uploaded Timesheet** — rows imported from an external xlsx (for staff who
-    don't log in-app). "Upload Timesheet" parses the file client-side
-    (columns: Name, WBS Code, Project, Hours) and posts the rows.
-  - **Differences** — reconciliation: where in-app totals differ from uploaded.
+  - **Uploaded Timesheet** — the *same grid* (resource rows × day columns) built
+    only from external xlsx rows (for staff who don't log in-app). "Upload
+    Timesheet" parses the file client-side — columns matched loosely
+    (case/space-insensitive): **WBS Code, Work Date, Associate Name, Resource
+    Name, Hours, WBS L4 Name** — and posts one row per person/day. Cells are
+    click-to-edit (auto-saved via `PUT`/`DELETE /api/uploads/{id}`).
+  - **Differences** — reconciliation: per person **per day**, lists only where
+    in-app vs uploaded hours differ (with the signed delta).
   - **Download Project Summary** — Excel/PDF, scope = this domain or all my
     domains (see §4).
 
@@ -213,9 +240,9 @@ These were resolved through requirements interviews; keep them unless explicitly
    all my domains; leave excluded — project work only) and the **per-employee
    monthly report** (detail rows + a leave section).
 10. **Weekly grid** replaces the old calendar/list/Log-Time screens; week runs
-    **Sun–Sat**; weekends auto Bank Holiday; groups are collapsible; "Add" uses
-    searchable autocompletes; whole-row delete and leave-entry both use
-    confirmation/review modals.
+    **Sun–Sat**; weekends **and Irish bank holidays** auto Bank Holiday (7.25h);
+    groups are collapsible; "Add" uses searchable autocompletes; whole-row delete
+    and leave-entry both use confirmation/review modals.
 11. **Access:** Billing / Forecasting / Leakage Report / Budget Management (and
     the whole PROJECTS group) are **admin & super-admin only** — hidden from
     employee nav + search and route-guarded.
@@ -224,6 +251,15 @@ These were resolved through requirements interviews; keep them unless explicitly
 13. **Extensibility:** nothing is hard-coded — domains, WBS codes and users are
     all data managed in the Admin Panel; adding a new engagement is a data
     operation, not a code change.
+14. **Over-8h anomalies use a dedicated alert colour, not a legend colour.**
+    After several iterations the chosen signal is a **crimson tint + a "!" badge
+    + a pulse** (crimson is close to, but deliberately distinct from, Annual
+    Leave red; the "!" and pulse keep it from reading as leave). The **same**
+    styling is reused for Differences mismatches so an anomaly looks identical on
+    Live Plan, Uploaded and Differences. Tokens: `--dtt-alert*` in `styles.scss`.
+15. **Dark mode for everyone.** A per-user theme toggle (persisted, OS-default)
+    is available to all roles. Everything is themed through `--dtt-*` tokens so
+    no component hard-codes colours; this is frontend-only (no backend).
 
 ---
 
@@ -251,8 +287,11 @@ Reset seed anytime via the ⟳ icon (top bar) or Home → Reset demo data.
 - Keep the mock (`core/mock/*`) and `API_CONTRACT.md` **in sync** — the contract
   is derived from the exact endpoints the app calls.
 - New scoped data must carry a `domainId` and be filtered by the caller's role.
-- Match the existing look: `.card`, `.chip`, Deloitte green (`#86bc25`), the
-  shared `dtt-page-header`, `dtt-search-select`, `dtt-confirm-dialog`.
+- Match the existing look: `.card`, `.chip`, the shared `dtt-page-header`,
+  `dtt-search-select`, `dtt-confirm-dialog`, and the grouped-`.block` language.
+- **Theme with tokens, never raw hex** — use the `--dtt-*` custom properties
+  (green, ink, line, card, tint, alert…) so light **and** dark both work; every
+  colour is defined in both `:root` blocks in `styles.scss`.
 - Money/label colours aside, **hour values are always 2-decimal**; leave text is
   black + bold (pending = amber background).
 - Run `npx ng build` before committing; the build validates all templates/types.
