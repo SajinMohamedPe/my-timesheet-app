@@ -1,0 +1,129 @@
+================================================================================
+PROMPT — Build the backend for the Deloitte Ireland Timesheet System
+Give this whole file to the coding agent. It is self-contained.
+================================================================================
+
+ROLE
+You are a senior Spring Boot engineer. Build the production backend for the
+"Deloitte Ireland Timesheet System". An Angular 20 frontend already exists and
+calls this API against an in-browser mock; your job is to implement the real API
+so that pointing the frontend at your base URL makes it live with ZERO frontend
+changes.
+
+SOURCE OF TRUTH (read these first, in order)
+1. API_CONTRACT.md  — THE binding spec: every endpoint, request/response shape,
+   the PostgreSQL data model (§3), the authorization matrix (§2), core domain
+   rules (§1), seed data (§6) and infra notes (§7). Implement it exactly.
+2. AGENT_CONTEXT.md — narrative background: what the product is, how each screen
+   behaves, and the deliberate product decisions. Use it to understand intent.
+3. README.md        — quick overview + how the frontend runs.
+Where anything is ambiguous, API_CONTRACT.md wins. Do not invent endpoints,
+fields, or behaviours that are not in the contract. If you believe the contract
+is wrong or incomplete, STOP and list the specific questions instead of guessing.
+
+TECH STACK (use exactly this unless the contract says otherwise)
+- Java 21, Spring Boot 3.x (latest stable).
+- Spring Web, Spring Security (JWT resource server / filter), Spring Data JPA,
+  Bean Validation (Jakarta), Spring Boot Actuator.
+- PostgreSQL (target: Azure Database for PostgreSQL – Flexible Server).
+- Flyway for schema migrations (translate the model in API_CONTRACT.md §3 into
+  versioned SQL migrations; use uuid PKs, FKs and the unique constraints shown).
+- BCrypt for password hashing.
+- Build: Maven (single module) — or Gradle if you prefer; be consistent.
+- Tests: JUnit 5 + Spring Boot Test + Testcontainers (PostgreSQL) for the
+  repository/integration layer; MockMvc for controller/security tests.
+- JSON via Jackson. Java time types (LocalDate / Instant/OffsetDateTime).
+
+NON-NEGOTIABLE BEHAVIOURAL RULES (from the contract — get these right)
+- Base path is /api. JSON in/out, UTF-8. Dates ISO-8601 (YYYY-MM-DD),
+  timestamps ISO-8601 UTC. Error body is { "message": "..." } with the HTTP
+  status noted in the contract (400/401/403/404/405).
+- Roles: SUPER_ADMIN, DOMAIN_ADMIN, EMPLOYEE. Enforce the §2 authorization
+  matrix SERVER-SIDE on every endpoint. "Scoped to domain" = filter every
+  collection so a DOMAIN_ADMIN only sees rows whose domainId is in the token's
+  domainIds; SUPER_ADMIN sees all; reject out-of-scope writes with 403.
+- Active-domain vs own-data: when an admin passes domainId, scope to that one
+  domain. An EMPLOYEE always sees their OWN data across ALL their domains — never
+  hide an employee's own rows because of a domainId param.
+- Time entries save freely (no approval). Leave ALWAYS requires approval
+  (PENDING/APPROVED/REJECTED). Editing a leave's hours resets it to PENDING and
+  clears decidedBy/decidedAt. Leave hours clamp to (0, 7.25]. Bank Holiday leave
+  is coerced to 7.25h.
+- WBS names are effective-dated: never mutate a name in place. On rename, close
+  the current wbs_name (valid_to = today) and insert a new one (valid_from =
+  today, valid_to = null). Resolve a name for date d as
+  valid_from <= d AND (valid_to IS NULL OR d < valid_to).
+- Project Summary MERGES in-app time entries + uploaded rows, IN-APP WINS on
+  conflict (match on name + wbsCode), grouped by WBS, days = hours / 8. Note the
+  8 divisor here is intentional even though the leave/day cap is 7.25.
+- Auditing: write an audit_entry whenever an admin edits ANOTHER user's
+  time/leave, on leave approve/reject, and on domain/WBS/user changes.
+- JWT: access token ~15 min, refresh ~7 days; claims sub=userId, role, domainIds.
+- These are PRESENTATION-ONLY and need NO backend work (API_CONTRACT.md §8):
+  over-8h anomaly flagging, the Differences/reconciliation diff, Irish
+  bank-holiday & weekend overlays, dark mode, 2-decimal display. Do NOT add
+  endpoints for them. BUT: any server-side report/day-count logic must apply the
+  SAME Irish bank-holiday calendar described in §1 so totals agree.
+
+PROJECT STRUCTURE (suggested; adapt cleanly)
+- config/      (security, CORS, Jackson, OpenAPI)
+- security/    (JWT issue/verify filter, UserDetails, method-security)
+- domain/      (JPA entities matching §3)
+- repo/        (Spring Data repositories)
+- dto/         (request/response records matching the contract's JSON exactly)
+- service/     (business rules: scoping, approval, WBS rename, merge/report)
+- web/         (REST controllers, one per §4 area; @RestControllerAdvice for the
+               { message } error envelope)
+- db/migration (Flyway V1__init.sql etc.)
+- Provide a data seeder (profile: "demo") that loads the §6 seed data so the API
+  behaves identically to the mock (same users/passwords, AIM + Fisheries, the
+  WBS rename on 2026-07-01, declan as STAFF, etc.).
+
+DELIVERABLES
+1. A complete, compiling Maven/Gradle project implementing EVERY endpoint in
+   API_CONTRACT.md §4 (auth, domains, wbs, users, time-entries, leave,
+   visibility, uploads, reports, audit; the /api/admin/reset dev utility behind
+   the demo profile only — do NOT expose it in prod).
+2. Flyway migrations for the full §3 schema.
+3. Security config enforcing the §2 matrix; unit/integration tests proving the
+   key rules (scoping, leave-edit-resets-to-pending, WBS rename history, merge
+   with in-app-wins, admin-edit auditing, 403 on out-of-scope writes).
+4. application.yml driven by env vars: SPRING_DATASOURCE_URL/USERNAME/PASSWORD
+   (enforce SSL), JWT signing secret, allowed CORS origin(s) for the SWA.
+5. Multi-stage Dockerfile (build + slim runtime).
+6. GitHub Actions workflow: build + test (Testcontainers) + build image + push
+   to Azure Container Registry + deploy to Azure Container Apps (OIDC federation,
+   no long-lived secrets), per API_CONTRACT.md §7.
+7. A backend README: how to run locally (docker compose with Postgres), env vars,
+   how to run tests, and how to switch the frontend over (contract §5).
+8. (Optional but preferred) springdoc-openapi so /swagger-ui is available.
+
+ACCEPTANCE CRITERIA (definition of done)
+- Every endpoint returns exactly the JSON shape in the contract (field names,
+  nesting, and the bare object/array envelope — no extra wrapper).
+- Auth works end-to-end: POST /api/auth/login with the seed credentials returns
+  accessToken + refreshToken + user{...domainIds}; /api/auth/me works from the
+  token; refresh works.
+- Running the app with the demo profile + the frontend (apiBase pointed at it,
+  mock interceptor removed) reproduces the mock's behaviour with no frontend
+  edits: login as super/admin/alice/declan, log time, request+approve leave,
+  rename a WBS (history preserved), upload an xlsx (or POST rows), and download
+  the Project Summary with correct merge + days=hours/8.
+- All tests pass; the image builds; `docker compose up` brings up API + Postgres.
+
+CONSTRAINTS & STYLE
+- Match the JSON casing in the contract (camelCase in payloads).
+- Validate inputs; return 400 with a clear { message }. Never leak stack traces.
+- No secrets in source; read all secrets/config from env (Key Vault in prod).
+- Keep it idiomatic Spring; prefer constructor injection and Java records for
+  DTOs; keep controllers thin and rules in services.
+
+HOW TO PROCEED
+1. Read API_CONTRACT.md fully, then AGENT_CONTEXT.md.
+2. Restate your implementation plan (schema, modules, endpoint list, test list)
+   in 1 page and flag any contract ambiguities BEFORE coding.
+3. Implement migrations → entities → repos → security → services → controllers →
+   seeder → tests → Docker/CI → README.
+4. Finish by running the full test suite and `docker compose up`, and report the
+   results (including any endpoint you could not fully satisfy and why).
+================================================================================
