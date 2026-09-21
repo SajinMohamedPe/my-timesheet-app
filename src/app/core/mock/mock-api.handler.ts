@@ -525,8 +525,13 @@ function projectSummary(db: MockDb, me: User, query: URLSearchParams): ProjectSu
     (a, b) => a.project.localeCompare(b.project) || a.name.localeCompare(b.name),
   );
   const grandTotalHours = rows.reduce((s, r) => s + r.hours, 0);
+  // Make the scope visible in the title so it shows as the export's heading
+  // (single domain by name, or "All Domains" for the multi-domain export).
+  const scopeLabel = scope === 'ALL'
+    ? 'All Domains'
+    : (scopeIds[0] ? domainName(domains, scopeIds[0]) : 'All Domains');
   return {
-    title: `Timesheet Summary — ${monthLabel(month)}`,
+    title: `Timesheet Summary — ${scopeLabel} — ${monthLabel(month)}`,
     month, scope, rows,
     grandTotalHours, grandTotalDays: grandTotalHours / 8,
   };

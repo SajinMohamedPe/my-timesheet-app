@@ -129,14 +129,50 @@
               @if (isMe(u)) { <span class="muted small">You</span> }
               @else if (u.role === 'SUPER_ADMIN') { <span class="muted small">—</span> }
               @else if (auth.isSuperAdmin()) {
-                @if (u.role === 'EMPLOYEE') { <button class="btn green sm" (click)="grant(u)">Grant Admin</button> }
-                @else { <button class="btn ghost sm" (click)="revoke(u)">Revoke Admin</button> }
+                @if (u.role === 'EMPLOYEE') { <button class="btn green sm" (click)="openAllocate(u)"><mat-icon>vpn_key</mat-icon> Grant Admin</button> }
+                @else {
+                  <button class="btn ghost sm" (click)="openAllocate(u)"><mat-icon>workspaces</mat-icon> Domains</button>
+                  <button class="btn ghost sm" (click)="revoke(u)">Revoke</button>
+                }
               } @else { <span class="muted small">Super Admin only</span> }
             </td>
           </tr>
         }
       </tbody>
     </table>
+    </div>
+  </div>
+}
+
+<!-- Domain allocation modal (Super Admin) -->
+@if (allocUser(); as u) {
+  <div class="backdrop" (click)="allocUser.set(null)">
+    <div class="allocmodal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <div class="am-head">
+        <div>
+          <h3>{{ u.role === 'EMPLOYEE' ? 'Grant admin' : 'Manage domains' }}</h3>
+          <p class="muted">{{ u.name }} · choose the domain(s) this admin manages.</p>
+        </div>
+        <button class="x" (click)="allocUser.set(null)"><mat-icon>close</mat-icon></button>
+      </div>
+      <div class="am-list">
+        @for (d of domains(); track d.id) {
+          <label class="am-row" [class.on]="allocSel()[d.id]">
+            <input type="checkbox" [checked]="allocSel()[d.id]" (change)="toggleAlloc(d.id)" />
+            <span class="am-name">{{ d.name }}</span>
+            <span class="am-desc muted">{{ d.description }}</span>
+          </label>
+        }
+        @if (!domains().length) { <p class="muted">No domains exist yet. Create one on the Domains tab first.</p> }
+      </div>
+      <div class="am-foot">
+        <span class="muted small">{{ allocCount() }} selected</span>
+        <span class="spacer"></span>
+        <button class="btn ghost" (click)="allocUser.set(null)">Cancel</button>
+        <button class="btn green" [disabled]="!allocCount()" (click)="saveAllocate()">
+          {{ u.role === 'EMPLOYEE' ? 'Grant admin' : 'Save allocation' }}
+        </button>
+      </div>
     </div>
   </div>
 }

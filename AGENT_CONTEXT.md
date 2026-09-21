@@ -193,7 +193,10 @@ Three tabs:
 - **WBS Codes** — scoped to the selected domain; add/rename/delete. **Renaming
   creates a new effective-dated name** (history preserved).
 - **Users & Roles** — add employees to your domain; **Super Admin** grants/
-  revokes admin and allocates domains.
+  revokes admin and allocates domains via a **"Manage domains" modal** (tick the
+  domain(s) an admin manages; works to grant *and* to re-allocate an existing
+  admin at any time, many-to-many). The super admin sees all users here
+  regardless of the active domain, so any admin can be found and re-allocated.
 
 ### Coming Soon (`/coming-soon/:title`, admin only)
 Placeholder pages for Billing, Forecasting, Leakage Report, Budget Management.

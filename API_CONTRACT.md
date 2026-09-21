@@ -202,7 +202,7 @@ JWT claims: `sub`=userId, `role`, `domainIds` (array), plus standard `exp`/`iat`
   `User = { id, name, username, email, role, type, domainIds, active }`.
 - **POST `/api/users`** *(admin)* — `{ "name","username","email","type","domainIds" }` → `201 User` (role forced `EMPLOYEE`; domains must be within caller's scope; default password `password123` or send invite in production).
 - **PUT `/api/users/{id}`** *(admin)* — `{ "name?","email?","type?","domainIds?","active?" }`.
-- **POST `/api/users/{id}/grant-admin`** *(SUPER_ADMIN)* — `{ "domainIds": ["..."] }` sets role `DOMAIN_ADMIN` and allocates domains → `User`.
+- **POST `/api/users/{id}/grant-admin`** *(SUPER_ADMIN)* — `{ "domainIds": ["..."] }` sets role `DOMAIN_ADMIN` and allocates domains → `User`. **Idempotent re-allocation:** calling it again on an existing `DOMAIN_ADMIN` **replaces** their allocated `domainIds` with the supplied set (this is how the Super Admin's "Manage domains" screen adds/removes an admin's domains). `domainIds` must be non-empty (an admin manages at least one domain; to remove all, use `revoke-admin`).
 - **POST `/api/users/{id}/revoke-admin`** *(SUPER_ADMIN)* → sets role `EMPLOYEE` → `User`.
 
 ### 4.5 Time entries
@@ -264,13 +264,14 @@ JWT claims: `sub`=userId, `role`, `domainIds` (array), plus standard `exp`/`iat`
 - **GET `/api/reports/project-summary?scope=DOMAIN|ALL&domainId=&month=`** →
   ```jsonc
   {
-    "title":"Timesheet Summary — September 2026",
+    "title":"Timesheet Summary — AIM — September 2026",
     "month":"2026-09", "scope":"DOMAIN",
     "rows":[ { "name","wbsCode","project","hours","days","domainName?" } ],
     "grandTotalHours": 30, "grandTotalDays": 3.75
   }
   ```
   Rows = **merge** of in-app time entries + uploaded rows (in-app wins per `name+wbsCode`), grouped by WBS, `days = hours/8`. `project` = WBS name effective for the month. `scope=ALL` spans all the caller's domains and includes `domainName`.
+  **`title` embeds the scope** so it can serve as the export's heading: the single domain's name for `scope=DOMAIN` (e.g. *"Timesheet Summary — AIM — September 2026"*), or *"… — All Domains — …"* for `scope=ALL`. The frontend prints `title` as the first row of the Excel sheet and the PDF heading; for `scope=ALL` a **Domain** column is also included per row.
 - **GET `/api/reports/employee?userId=&month=`** →
   ```jsonc
   {

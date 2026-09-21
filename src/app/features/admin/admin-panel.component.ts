@@ -33,6 +33,10 @@ export class AdminPanelComponent implements OnInit {
   addingUser = signal(false);
   newUser = { name: '', username: '', email: '', type: 'CONTRACTOR' as 'CONTRACTOR' | 'STAFF' };
 
+  // Super-admin domain allocation modal
+  allocUser = signal<User | null>(null);
+  allocSel = signal<Record<string, boolean>>({});
+
   constructor() {
     if (this.auth.isSuperAdmin()) this.tab.set('DOMAINS');
     effect(() => { this.ctx.selectedId(); this.load(); });
@@ -43,7 +47,11 @@ export class AdminPanelComponent implements OnInit {
     const domainId = this.ctx.selectedId() ?? undefined;
     this.api.getDomains().subscribe((d) => this.domains.set(d));
     this.api.getWbs(domainId).subscribe((w) => this.wbs.set(w));
-    this.api.getUsers(domainId).subscribe((u) => this.users.set(u));
+    // A Super Admin manages users/allocations across ALL domains, so don't scope
+    // the user list to the active domain — otherwise an admin from another domain
+    // couldn't be found to (re)allocate. Domain Admins stay scoped.
+    const userScope = this.auth.isSuperAdmin() ? undefined : domainId;
+    this.api.getUsers(userScope).subscribe((u) => this.users.set(u));
   }
 
   domainName(id: string): string { return this.domains().find((d) => d.id === id)?.name ?? id; }
@@ -94,17 +102,26 @@ export class AdminPanelComponent implements OnInit {
       this.newUser = { name: '', username: '', email: '', type: 'CONTRACTOR' }; this.addingUser.set(false); this.load();
     });
   }
-  grant(u: User): void {
-    // Super Admin allocates which domains this admin manages.
-    const options = this.domains().map((d) => `${d.name} (${d.id})`).join(', ');
-    const input = prompt(`Grant admin to ${u.name}. Enter domain names to allocate (comma-separated).\nAvailable: ${this.domains().map(d => d.name).join(', ')}`, this.domains().map(d => d.name).join(', '));
-    if (input === null) return;
-    const names = input.split(',').map((s) => s.trim().toLowerCase());
-    const domainIds = this.domains().filter((d) => names.includes(d.name.toLowerCase())).map((d) => d.id);
-    this.api.grantAdmin(u.id, domainIds.length ? domainIds : undefined).subscribe(() => this.load());
+  // Super Admin allocates which domain(s) an admin manages (many-to-many).
+  // Opens for an employee (to grant + allocate) or an existing admin (to re-allocate).
+  openAllocate(u: User): void {
+    const sel: Record<string, boolean> = {};
+    for (const d of this.domains()) sel[d.id] = u.domainIds.includes(d.id);
+    this.allocSel.set(sel);
+    this.allocUser.set(u);
+  }
+  toggleAlloc(id: string): void {
+    this.allocSel.update((s) => ({ ...s, [id]: !s[id] }));
+  }
+  allocCount(): number { return Object.values(this.allocSel()).filter(Boolean).length; }
+  saveAllocate(): void {
+    const u = this.allocUser(); if (!u) return;
+    const domainIds = this.domains().map((d) => d.id).filter((id) => this.allocSel()[id]);
+    if (!domainIds.length) return; // an admin must manage at least one domain
+    this.api.grantAdmin(u.id, domainIds).subscribe(() => { this.allocUser.set(null); this.load(); });
   }
   revoke(u: User): void {
-    if (!confirm(`Revoke admin from ${u.name}?`)) return;
+    if (!confirm(`Revoke admin from ${u.name}? They become a regular employee.`)) return;
     this.api.revokeAdmin(u.id).subscribe(() => this.load());
   }
   roleChip(u: User): string {

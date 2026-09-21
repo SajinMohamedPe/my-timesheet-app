@@ -30,3 +30,23 @@
 .chip.sm { font-size: 11px; padding: 1px 8px; margin-right: 4px; }
 .chip .key { font-size: 13px; width: 13px; height: 13px; vertical-align: middle; }
 .small { font-size: 12px; }
+
+/* Domain allocation modal (Super Admin) */
+.backdrop { position: fixed; inset: 0; background: rgba(20,22,24,.45); z-index: 100;
+  display: flex; align-items: center; justify-content: center; padding: 20px; }
+.allocmodal { background: var(--dtt-card); border-radius: 14px; width: 460px; max-width: 100%;
+  box-shadow: 0 24px 60px rgba(0,0,0,.28); padding: 20px 22px; max-height: 86vh; overflow: auto; }
+.am-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.am-head h3 { margin: 0; font-size: 19px; }
+.am-head p { margin: 4px 0 0; font-size: 13px; }
+.x { border: none; background: transparent; cursor: pointer; color: var(--dtt-muted); display: flex; padding: 4px; border-radius: 6px; }
+.x:hover { background: var(--dtt-line); }
+.am-list { margin: 16px 0 4px; display: flex; flex-direction: column; gap: 8px; }
+.am-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--dtt-line);
+  border-radius: 10px; cursor: pointer; font-size: 14px; }
+.am-row.on { border-color: var(--dtt-green); background: var(--dtt-tint); }
+.am-row input { width: 17px; height: 17px; accent-color: var(--dtt-green); cursor: pointer; }
+.am-name { font-weight: 700; }
+.am-desc { font-size: 12px; }
+.am-foot { display: flex; align-items: center; gap: 10px; margin-top: 18px; }
+.am-foot .spacer { flex: 1; }
