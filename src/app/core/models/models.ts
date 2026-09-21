@@ -64,24 +64,59 @@ export type LeaveType =
   | 'INTERNAL'            // Deloitte Internal Days / Practice Days / All Hands / Gems
   | 'BANK_HOLIDAY';
 
-export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'WITHDRAWN' | 'SUPERSEDED';
 
 /** Standard Deloitte working day in hours; also the max leave hours per day. */
 export const MAX_LEAVE_HOURS_PER_DAY = 7.25;
+/** A half-day of leave is a flat 4 hours. */
+export const HALF_DAY_HOURS = 4;
 
-/** All leave requires domain-admin approval. Editing hours re-triggers approval. */
+/**
+ * One PER-DAY leave record. Records are created by a leave *request* (a range the
+ * user submits) and grouped by `submissionId`. All leave requires domain-admin
+ * approval; only APPROVED leave shows on the (read-only) timesheet grid.
+ */
 export interface LeaveRequest {
   id: string;
+  submissionId: string;    // groups the per-day rows created by one request
   userId: string;
   domainId: string;
   type: LeaveType;
-  date: string;            // ISO date
-  hours: number;           // 0 < hours <= 7.25
+  date: string;            // ISO date (this one day)
+  hours: number;           // 7.25 (full) or 4 (half)
+  halfDay: boolean;
+  startDate: string;       // request range (denormalised, same for the group)
+  endDate: string;
+  reason?: string;
   notes?: string;
   status: LeaveStatus;
   requestedAt: string;
   decidedBy?: string;
   decidedAt?: string;
+  decisionReason?: string; // admin's note when rejecting
+}
+
+/** Aggregated view of a leave *request* (one row per submissionId). */
+export interface LeaveRequestView {
+  id: string;              // submissionId
+  userId: string;
+  userName: string;
+  domainId: string;
+  domainName: string;
+  type: LeaveType;
+  startDate: string;
+  endDate: string;
+  halfDay: boolean;
+  hoursPerDay: number;
+  days: number;            // number of working days in the request
+  totalHours: number;
+  reason?: string;
+  status: LeaveStatus;
+  requestedAt: string;
+  decidedBy?: string;
+  decidedByName?: string;
+  decidedAt?: string;
+  decisionReason?: string;
 }
 
 export interface AuditEntry {

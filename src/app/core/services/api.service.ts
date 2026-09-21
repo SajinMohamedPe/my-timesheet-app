@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
-  AuditEntry, Domain, LeaveRequest, ProjectSummary, TimeEntry, User, WbsCode,
+  AuditEntry, Domain, LeaveRequest, LeaveRequestView, ProjectSummary, TimeEntry, User, WbsCode,
 } from '../models/models';
 
 export interface WbsCodeView extends WbsCode { currentName: string; }
@@ -83,6 +83,20 @@ export class ApiService {
   deleteLeave(id: string) { return this.http.delete(`${base}/leave/${id}`); }
   approveLeave(id: string) { return this.http.post<LeaveRequest>(`${base}/leave/${id}/approve`, {}); }
   rejectLeave(id: string) { return this.http.post<LeaveRequest>(`${base}/leave/${id}/reject`, {}); }
+
+  // Leave requests (range submissions, grouped)
+  getLeaveRequests(q: { scope?: 'mine' | 'queue'; status?: string; domainId?: string } = {}) {
+    return this.http.get<LeaveRequestView[]>(`${base}/leave-requests`, { params: params(q) });
+  }
+  createLeaveRequest(r: { domainId: string; type: string; startDate: string; endDate: string; halfDay: boolean; reason?: string }) {
+    return this.http.post<LeaveRequestView>(`${base}/leave-requests`, r);
+  }
+  updateLeaveRequest(id: string, r: Partial<{ type: string; startDate: string; endDate: string; halfDay: boolean; reason: string }>) {
+    return this.http.put<LeaveRequestView>(`${base}/leave-requests/${id}`, r);
+  }
+  withdrawLeaveRequest(id: string) { return this.http.post<LeaveRequestView>(`${base}/leave-requests/${id}/withdraw`, {}); }
+  approveLeaveRequest(id: string) { return this.http.post<LeaveRequestView>(`${base}/leave-requests/${id}/approve`, {}); }
+  rejectLeaveRequest(id: string, reason?: string) { return this.http.post<LeaveRequestView>(`${base}/leave-requests/${id}/reject`, { reason }); }
 
   // Visibility
   getVisibility(domainId: string | null, month: string) {

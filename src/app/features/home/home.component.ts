@@ -6,7 +6,7 @@ import { DomainContextService } from '../../core/services/domain-context.service
 import { ApiService } from '../../core/services/api.service';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { currentMonth } from '../../core/util/dates';
-import { LeaveRequest, TimeEntry } from '../../core/models/models';
+import { LeaveRequestView, TimeEntry } from '../../core/models/models';
 import { effect } from '@angular/core';
 
 @Component({
@@ -46,12 +46,13 @@ import { effect } from '@angular/core';
       <div class="notice-h"><mat-icon>info</mat-icon>
         <span>{{ rejectedLeaves().length }} leave request{{ rejectedLeaves().length > 1 ? 's were' : ' was' }} not approved</span>
       </div>
-      <p class="muted">These were declined by your domain admin and have been removed from your timesheet. You can log time on those days or raise the leave again.</p>
+      <p class="muted">These were declined by your domain admin. You can log time on those days or raise a new request from <a routerLink="/my-leave">My Leave</a>.</p>
       <ul class="rej-list">
         @for (l of rejectedLeaves(); track l.id) {
-          <li><span class="rej-date">{{ fmtLeaveDate(l.date) }}</span>
+          <li><span class="rej-date">{{ rangeLabel(l) }}</span>
             <span class="rej-type">{{ leaveTypeLabel(l.type) }}</span>
-            <span class="rej-hrs muted">{{ l.hours.toFixed(2) }}h</span></li>
+            @if (l.decisionReason) { <span class="rej-reason muted">“{{ l.decisionReason }}”</span> }
+            <span class="rej-hrs muted">{{ l.totalHours.toFixed(2) }}h</span></li>
         }
       </ul>
     </div>
@@ -62,6 +63,7 @@ import { effect } from '@angular/core';
     <div class="qa">
       <a routerLink="/timesheets"><mat-icon>grid_on</mat-icon> Log this week</a>
       <a routerLink="/visibility"><mat-icon>visibility</mat-icon> Monthly View</a>
+      <a routerLink="/my-leave"><mat-icon>event_note</mat-icon> Request leave</a>
       @if (auth.isAdmin()) {
         <a routerLink="/leave-approvals"><mat-icon>fact_check</mat-icon> Approve leave</a>
         <a routerLink="/reports"><mat-icon>download</mat-icon> Download reports</a>
@@ -83,8 +85,9 @@ import { effect } from '@angular/core';
     .rej-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
     .rej-list li { display: flex; align-items: center; gap: 12px; font-size: 13px; padding: 8px 12px;
       border: 1px solid var(--dtt-line); border-radius: 8px; }
-    .rej-date { font-weight: 700; min-width: 110px; }
-    .rej-type { flex: 1; }
+    .rej-date { font-weight: 700; min-width: 150px; }
+    .rej-type { min-width: 130px; }
+    .rej-reason { flex: 1; font-style: italic; }
     .quick h3 { margin: 0 0 14px; }
     .qa { display: flex; gap: 12px; flex-wrap: wrap; }
     .qa a { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border: 1px solid var(--dtt-line);
@@ -102,7 +105,7 @@ export class HomeComponent implements OnInit {
   private api = inject(ApiService);
 
   private entries = signal<TimeEntry[]>([]);
-  private leaves = signal<LeaveRequest[]>([]);
+  private requests = signal<LeaveRequestView[]>([]);
   private team = signal(0);
   private month = currentMonth();
 
@@ -116,24 +119,28 @@ export class HomeComponent implements OnInit {
     const domainId = this.ctx.selectedId() ?? undefined;
     this.api.getTimeEntries({ domainId, from: this.month + '-01', to: this.month + '-31' })
       .subscribe((e) => this.entries.set(e));
-    const leaveQuery = this.auth.isAdmin() ? { status: 'PENDING', domainId } : { userId: this.auth.user()!.id };
-    // Admins: pending queue count. Employees: keep the full list so we can show
-    // both their pending count and any rejected-leave notice.
-    this.api.getLeave(leaveQuery).subscribe((l) => this.leaves.set(l));
+    // Admins: their approval queue (count pending). Employees: their own requests
+    // (pending count + rejected-leave notice).
+    const q = this.auth.isAdmin() ? { scope: 'queue' as const, domainId } : { scope: 'mine' as const };
+    this.api.getLeaveRequests(q).subscribe((r) => this.requests.set(r));
     if (this.auth.isAdmin()) this.api.getUsers(domainId).subscribe((u) => this.team.set(u.length));
   }
 
   firstName = computed(() => (this.auth.user()?.name ?? '').split(' ')[0]);
   hoursThisMonth = computed(() => this.entries().reduce((s, e) => s + e.hours, 0));
   daysThisMonth = computed(() => Math.round((this.hoursThisMonth() / 8) * 100) / 100);
-  pendingLeave = computed(() => this.leaves().filter((l) => l.status === 'PENDING').length);
+  pendingLeave = computed(() => this.requests().filter((l) => l.status === 'PENDING').length);
   teamSize = computed(() => this.team());
   // Rejected leave to flag to the contractor (kept off the timesheet grid).
   rejectedLeaves = computed(() =>
-    this.auth.isAdmin() ? [] : this.leaves().filter((l) => l.status === 'REJECTED'),
+    this.auth.isAdmin() ? [] : this.requests().filter((l) => l.status === 'REJECTED'),
   );
   fmtLeaveDate(iso: string): string {
     return new Date(iso + 'T00:00:00').toLocaleDateString('en-IE', { weekday: 'short', day: 'numeric', month: 'short' });
+  }
+  rangeLabel(l: LeaveRequestView): string {
+    return l.startDate === l.endDate ? this.fmtLeaveDate(l.startDate)
+      : `${this.fmtLeaveDate(l.startDate)} → ${this.fmtLeaveDate(l.endDate)}`;
   }
   leaveTypeLabel(t: string): string {
     return ({ ANNUAL: 'Annual leave', SICK: 'Sick leave', TRAINING: 'Deloitte Training',

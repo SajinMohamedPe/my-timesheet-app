@@ -13,10 +13,12 @@ Angular 20 UI for a **contractor timesheet system** for Deloitte Ireland.
 - **Weekly time grid** — log a whole week (Sun–Sat) at once. WBS charge codes are
   grouped by domain (engagement) with a collapsible Absence/Leave group.
   Hours show to 2 decimals; time saves automatically.
-- **Leave** — entered as hours (max **7.25/day**); every leave opens a review
-  modal and goes to the **domain admin for approval** (pending cells are amber).
-  A **rejected** leave is removed from the contractor's timesheet and flagged on
-  their Home page instead (so the grid stays clean).
+- **Leave requests** — a **My Leave** screen with a pop-up to request leave
+  (type, start/end date, **Full 7.25h / Half 4h**, reason). A request covers a
+  range and expands to working days (weekends + Irish bank holidays skipped), then
+  goes to the **domain admin for approval** (with Pending/All tracking, edit &
+  withdraw while pending). Only **approved** leave shows on the timesheet
+  (read-only); **rejected** leave is flagged on Home with the admin's reason.
 - **Monthly View** — colour-coded month grid; admin tabs for **Live Plan /
   Uploaded Timesheet / Differences**, xlsx upload, and one-click **Project
   Summary** download (Excel/PDF, this domain or all domains). Days over **8h**

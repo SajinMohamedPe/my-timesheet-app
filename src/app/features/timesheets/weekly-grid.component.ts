@@ -1,4 +1,5 @@
 import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -29,13 +30,9 @@ const LEAVE_TYPES: { type: LeaveType; label: string }[] = [
   { type: 'BANK_HOLIDAY', label: 'Bank Holiday' },
 ];
 
-const LEAVE_KEY: Record<LeaveType, string> = {
-  ANNUAL: 'annual', SICK: 'sick', TRAINING: 'training', INTERNAL: 'internal', BANK_HOLIDAY: 'bank',
-};
-
 @Component({
   selector: 'dtt-weekly-grid',
-  imports: [FormsModule, MatIconModule, MatMenuModule, MatDatepickerModule, PageHeaderComponent, SearchSelectComponent, ConfirmDialogComponent],
+  imports: [FormsModule, RouterLink, MatIconModule, MatMenuModule, MatDatepickerModule, PageHeaderComponent, SearchSelectComponent, ConfirmDialogComponent],
   providers: [provideNativeDateAdapter()],
   templateUrl: './weekly-grid.component.html',
   styleUrl: './weekly-grid.component.scss',
@@ -46,7 +43,6 @@ export class WeeklyGridComponent implements OnInit {
   private api = inject(ApiService);
 
   readonly leaveTypes = LEAVE_TYPES;
-  readonly maxLeave = MAX_LEAVE_HOURS_PER_DAY;
   weekAnchor = signal(weekStart(new Date()));
   days = computed(() => weekDays(this.weekAnchor()));
   rangeLabel = computed(() => fmtRange(this.days()));
@@ -177,7 +173,7 @@ export class WeeklyGridComponent implements OnInit {
     const vis = this.visibleDomainIdSet();
     const withData = new Set(
       this.leaves()
-        .filter((l) => weekIsos.has(l.date) && vis.has(l.domainId) && l.status !== 'REJECTED')
+        .filter((l) => weekIsos.has(l.date) && vis.has(l.domainId) && l.status === 'APPROVED')
         .map((l) => l.type),
     );
     this.extraLeave().forEach((t) => withData.add(t));
@@ -191,15 +187,6 @@ export class WeeklyGridComponent implements OnInit {
   /** A Bank-Holiday cell that is auto-filled (Irish holiday, no explicit record). */
   autoBankHoliday(day: Date): boolean {
     return isIrishBankHoliday(day) && !this.leaveFor('BANK_HOLIDAY', day);
-  }
-  leaveOptions = computed<SelectOption[]>(() => {
-    const shown = new Set(this.visibleLeaveTypes().map((lt) => lt.type));
-    return this.leaveTypes.filter((lt) => !shown.has(lt.type)).map((lt) => ({ value: lt.type, label: lt.label }));
-  });
-  addLeaveRow(type: string): void {
-    const s = new Set(this.extraLeave());
-    s.add(type as LeaveType);
-    this.extraLeave.set(s);
   }
 
   // ---- Formatting (always 2 decimals) ----
@@ -249,9 +236,9 @@ export class WeeklyGridComponent implements OnInit {
   leaveFor(type: LeaveType, day: Date): LeaveRequest | undefined {
     const d = isoDate(day);
     const vis = this.visibleDomainIdSet();
-    // Rejected leave is not shown on the timesheet grid (the contractor is told
-    // about a rejection on Home instead); the day is free to log again.
-    return this.leaves().find((l) => l.type === type && l.date === d && vis.has(l.domainId) && l.status !== 'REJECTED');
+    // Only APPROVED leave appears on the timesheet grid, and it is read-only.
+    // Pending/rejected are managed on the My Leave screen, not here.
+    return this.leaves().find((l) => l.type === type && l.date === d && vis.has(l.domainId) && l.status === 'APPROVED');
   }
   leaveHours(type: LeaveType, day: Date): number | null {
     const l = this.leaveFor(type, day);
@@ -259,48 +246,7 @@ export class WeeklyGridComponent implements OnInit {
     if (type === 'BANK_HOLIDAY' && isIrishBankHoliday(day)) return BANK_HOLIDAY_HOURS; // auto
     return null;
   }
-  leaveStatusClass(type: LeaveType, day: Date): string {
-    const l = this.leaveFor(type, day);
-    return l ? l.status.toLowerCase() : '';
-  }
-  leaveStatusLabel(type: LeaveType, day: Date): string {
-    const l = this.leaveFor(type, day);
-    return l ? l.status : '';
-  }
-  leaveKey(type: LeaveType): string { return LEAVE_KEY[type]; }
-  setLeave(type: LeaveType, day: Date, value: string): void {
-    const existing = this.leaveFor(type, day);
-    let num = parseFloat(value);
-    // Clearing a value removes the request directly (no review needed).
-    if (!value || isNaN(num) || num <= 0) {
-      if (existing) { this.saving.set(true); this.api.deleteLeave(existing.id).subscribe(() => { this.saving.set(false); this.reload(); }); }
-      return;
-    }
-    num = Math.min(this.maxLeave, Math.round(num * 100) / 100); // cap at 7.25
-    if (type === 'BANK_HOLIDAY') num = BANK_HOLIDAY_HOURS;      // bank holiday is always a full 7.25
-    const label = this.leaveTypes.find((l) => l.type === type)?.label ?? 'leave';
-    const dayLabel = day.toLocaleDateString('en-IE', { weekday: 'short', day: 'numeric', month: 'short' });
-    // Entering/editing leave opens a review modal before submitting for approval.
-    this.dialog.set({
-      title: existing ? 'Re-submit leave for approval?' : 'Submit leave for approval?',
-      message: `${label} of ${num.toFixed(2)}h on ${dayLabel} will be sent to your domain admin for review.`,
-      detail: existing ? 'Editing an existing leave resets it to Pending.' : '',
-      confirmLabel: 'Submit', danger: false,
-      onConfirm: () => this.saveLeave(type, day, num, existing),
-      onCancel: () => this.reload(), // revert the unsaved cell value
-    });
-  }
-
-  private saveLeave(type: LeaveType, day: Date, hours: number, existing?: LeaveRequest): void {
-    const date = isoDate(day);
-    const domainId = this.ctx.selectedId() ?? this.selectedUser()?.domainIds[0]!;
-    this.saving.set(true);
-    const done = () => { this.saving.set(false); this.reload(); };
-    if (existing) this.api.updateLeave(existing.id, { hours }).subscribe(done); // resets to PENDING
-    else this.api.createLeave({ userId: this.selectedUserId(), domainId, type, date, hours }).subscribe(done);
-  }
-
-  // ---- Reusable in-app modal (deletes + leave submission) ----
+  // ---- Reusable in-app modal (charge-code row deletes) ----
   dialog = signal<{
     title: string; message: string; detail?: string; confirmLabel: string;
     danger: boolean; onConfirm: () => void; onCancel?: () => void;
@@ -319,18 +265,6 @@ export class WeeklyGridComponent implements OnInit {
       onConfirm: () => this.doRemoveWbs(row),
     });
   }
-  askRemoveLeave(type: LeaveType): void {
-    const label = this.leaveTypes.find((l) => l.type === type)?.label ?? 'leave';
-    const count = this.days().map((d) => this.leaveFor(type, d)).filter(Boolean).length;
-    this.dialog.set({
-      title: 'Delete leave row?',
-      message: `This will delete the entire ${label} row for ${this.rangeLabel()}, including ${count} leave ${count === 1 ? 'request' : 'requests'} this week.`,
-      detail: 'The whole record will be removed and this action cannot be undone.',
-      confirmLabel: 'Delete record', danger: true,
-      onConfirm: () => this.doRemoveLeave(type),
-    });
-  }
-
   private doRemoveWbs(row: WbsRow): void {
     this.saving.set(true);
     const toDelete = this.days().map((d) => this.entryFor(row.wbs.id, d)).filter((e): e is TimeEntry => !!e);
@@ -344,17 +278,6 @@ export class WeeklyGridComponent implements OnInit {
     let done = 0;
     toDelete.forEach((e) => this.api.deleteTimeEntry(e.id).subscribe(() => { if (++done === toDelete.length) after(); }));
   }
-  private doRemoveLeave(type: LeaveType): void {
-    this.saving.set(true);
-    const toDelete = this.days().map((d) => this.leaveFor(type, d)).filter((l): l is LeaveRequest => !!l);
-    const after = () => {
-      const s = new Set(this.extraLeave()); s.delete(type); this.extraLeave.set(s);
-      this.saving.set(false); this.reload();
-    };
-    if (!toDelete.length) { after(); return; }
-    let done = 0;
-    toDelete.forEach((l) => this.api.deleteLeave(l.id).subscribe(() => { if (++done === toDelete.length) after(); }));
-  }
 
   // ---- Totals (scoped to the domains currently shown in the grid) ----
   private visibleDomainIdSet = computed(() => new Set(this.groups().map((g) => g.domain.id)));
@@ -363,7 +286,7 @@ export class WeeklyGridComponent implements OnInit {
     const d = isoDate(day);
     const vis = this.visibleDomainIdSet();
     const t = this.entries().filter((e) => e.date === d && vis.has(e.domainId)).reduce((s, e) => s + e.hours, 0);
-    let lv = this.leaves().filter((l) => l.date === d && l.status !== 'REJECTED' && vis.has(l.domainId))
+    let lv = this.leaves().filter((l) => l.date === d && l.status === 'APPROVED' && vis.has(l.domainId))
       .reduce((s, l) => s + (l.hours || 0), 0);
     if (this.autoBankHoliday(day)) lv += BANK_HOLIDAY_HOURS; // auto Irish bank holiday
     return Math.round((t + lv) * 100) / 100;

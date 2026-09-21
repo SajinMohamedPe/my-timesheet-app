@@ -1,8 +1,9 @@
 import {
-  AuditEntry, AuthUser, Domain, LeaveRequest, ProjectSummary, ProjectSummaryRow,
-  TimeEntry, User, WbsCode,
+  AuditEntry, AuthUser, Domain, LeaveRequest, LeaveRequestView, ProjectSummary, ProjectSummaryRow,
+  TimeEntry, User, WbsCode, HALF_DAY_HOURS, MAX_LEAVE_HOURS_PER_DAY,
 } from '../models/models';
 import { currentWbsName, MockDb, resolveWbsName, uid } from './mock-db';
+import { isIrishBankHoliday, isoDate } from '../util/dates';
 import { PASSWORDS } from './seed';
 
 export interface MockResult { status: number; body: unknown; }
@@ -76,6 +77,7 @@ export function handleMockRequest(db: MockDb, req: ParsedReq): MockResult {
     case 'users':        return usersRoute(db, me, req);
     case 'time-entries': return timeEntriesRoute(db, me, req);
     case 'leave':        return leaveRoute(db, me, req);
+    case 'leave-requests': return leaveRequestsRoute(db, me, req);
     case 'visibility':   return ok(visibility(db, me, query));
     case 'uploads':      return uploadsRoute(db, me, req);
     case 'reports':      return reportsRoute(db, me, req);
@@ -344,10 +346,12 @@ function leaveRoute(db: MockDb, me: User, req: ParsedReq): MockResult {
     return ok(list);
   }
   if (method === 'POST' && !p[2]) {
+    const sid = uid('lr');
+    const hrs = body.type === 'BANK_HOLIDAY' ? 7.25 : clampLeave(body.hours); // bank holiday = full day
     const l: LeaveRequest = {
-      id: uid('l'), userId: body.userId ?? me.id, domainId: body.domainId,
-      type: body.type, date: body.date,
-      hours: body.type === 'BANK_HOLIDAY' ? 7.25 : clampLeave(body.hours), // bank holiday = full day
+      id: uid('l'), submissionId: sid, userId: body.userId ?? me.id, domainId: body.domainId,
+      type: body.type, date: body.date, hours: hrs, halfDay: hrs <= HALF_DAY_HOURS,
+      startDate: body.date, endDate: body.date,
       notes: body.notes, status: 'PENDING', requestedAt: new Date().toISOString(),
     };
     leave.push(l);
@@ -400,6 +404,168 @@ function leaveRoute(db: MockDb, me: User, req: ParsedReq): MockResult {
   return err(405, 'Method not allowed');
 }
 
+// ------------------------- Leave requests (range submissions) -------------------------
+
+/** Working days in [start,end] inclusive, skipping weekends + Irish bank holidays. */
+function expandWorkingDays(start: string, end: string): string[] {
+  const out: string[] = [];
+  const s = new Date(start + 'T00:00:00');
+  const e = new Date(end + 'T00:00:00');
+  for (const d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) continue;      // weekend
+    if (isIrishBankHoliday(d)) continue;       // Irish public holiday
+    out.push(isoDate(d));
+  }
+  return out;
+}
+
+function toLeaveView(db: MockDb, rows: LeaveRequest[]): LeaveRequestView {
+  const first = rows[0];
+  const user = db.get('users').find((u) => u.id === first.userId);
+  const dom = db.get('domains').find((d) => d.id === first.domainId);
+  const decider = first.decidedBy ? db.get('users').find((u) => u.id === first.decidedBy) : undefined;
+  return {
+    id: first.submissionId, userId: first.userId, userName: user?.name ?? first.userId,
+    domainId: first.domainId, domainName: dom?.name ?? first.domainId, type: first.type,
+    startDate: first.startDate, endDate: first.endDate, halfDay: first.halfDay,
+    hoursPerDay: first.hours, days: rows.length, totalHours: Math.round(rows.reduce((s, r) => s + r.hours, 0) * 100) / 100,
+    reason: first.reason, status: first.status, requestedAt: first.requestedAt,
+    decidedBy: first.decidedBy, decidedByName: decider?.name, decidedAt: first.decidedAt,
+    decisionReason: first.decisionReason,
+  };
+}
+function leaveViewFor(db: MockDb, submissionId: string): LeaveRequestView | null {
+  const rows = db.get('leaveRequests').filter((l) => l.submissionId === submissionId);
+  return rows.length ? toLeaveView(db, rows) : null;
+}
+function groupLeaveViews(db: MockDb, rows: LeaveRequest[]): LeaveRequestView[] {
+  const groups = new Map<string, LeaveRequest[]>();
+  for (const r of rows) { const g = groups.get(r.submissionId) ?? []; g.push(r); groups.set(r.submissionId, g); }
+  return [...groups.values()].map((g) => toLeaveView(db, g));
+}
+/** Who may decide a request: never your own; an admin's own request needs a Super Admin. */
+function canDecide(db: MockDb, me: User, row: LeaveRequest): boolean {
+  if (row.userId === me.id) return false;
+  if (me.role === 'SUPER_ADMIN') return true;
+  if (me.role !== 'DOMAIN_ADMIN' || !me.domainIds.includes(row.domainId)) return false;
+  const requester = db.get('users').find((u) => u.id === row.userId);
+  // Domain admins approve employees only; another admin's request goes to a Super Admin.
+  return !!requester && requester.role === 'EMPLOYEE';
+}
+
+function leaveRequestsRoute(db: MockDb, me: User, req: ParsedReq): MockResult {
+  const { method, segments: p, query, body } = req;
+  const leave = db.get('leaveRequests');
+
+  if (method === 'GET' && !p[2]) {
+    const scope = query.get('scope');       // 'mine' | 'queue'
+    const status = query.get('status');
+    const domainId = query.get('domainId');
+    const ids = visibleDomainIds(db, me);
+    let rows = leave.filter((l) => ids.includes(l.domainId));
+    if (scope === 'queue' && isAdmin(me)) {
+      rows = rows.filter((l) => canDecide(db, me, l));   // requests this admin may act on
+    } else {
+      rows = rows.filter((l) => l.userId === me.id);      // 'mine' (default)
+    }
+    if (domainId) rows = rows.filter((l) => l.domainId === domainId);
+    let views = groupLeaveViews(db, rows);
+    if (status) views = views.filter((v) => v.status === status);
+    views.sort((a, b) => b.requestedAt.localeCompare(a.requestedAt) || b.startDate.localeCompare(a.startDate));
+    return ok(views);
+  }
+
+  if (method === 'POST' && !p[2]) {
+    const userId = body.userId ?? me.id;
+    const domainId = body.domainId as string;
+    if (!domainId || !body.type || !body.startDate || !body.endDate) return err(400, 'Missing required fields');
+    if (body.endDate < body.startDate) return err(400, 'End date is before start date');
+    const who = db.get('users').find((u) => u.id === userId);
+    if (!who || !who.domainIds.includes(domainId)) return err(400, 'User is not in that domain');
+    const days = expandWorkingDays(body.startDate, body.endDate);
+    if (!days.length) return err(400, 'No working days in the selected range');
+    const halfDay = body.type === 'BANK_HOLIDAY' ? false : !!body.halfDay;
+    const hours = body.type === 'BANK_HOLIDAY' ? MAX_LEAVE_HOURS_PER_DAY : (halfDay ? HALF_DAY_HOURS : MAX_LEAVE_HOURS_PER_DAY);
+    const submissionId = uid('lr');
+    const requestedAt = new Date().toISOString();
+    for (const d of days) {
+      leave.push({
+        id: uid('l'), submissionId, userId, domainId, type: body.type, date: d, hours, halfDay,
+        startDate: body.startDate, endDate: body.endDate, reason: body.reason, status: 'PENDING', requestedAt,
+      });
+    }
+    db.save();
+    return created(leaveViewFor(db, submissionId));
+  }
+
+  // Edit a PENDING request (re-expands the range).
+  if (method === 'PUT' && p[2]) {
+    const rows = leave.filter((l) => l.submissionId === p[2]);
+    if (!rows.length) return err(404, 'Request not found');
+    const first = rows[0];
+    if (first.userId !== me.id && !isAdmin(me)) return err(403, 'Forbidden');
+    if (first.status !== 'PENDING') return err(400, 'Only pending requests can be edited');
+    const type = body.type ?? first.type;
+    const startDate = body.startDate ?? first.startDate;
+    const endDate = body.endDate ?? first.endDate;
+    if (endDate < startDate) return err(400, 'End date is before start date');
+    const halfDay = type === 'BANK_HOLIDAY' ? false : (body.halfDay ?? first.halfDay);
+    const reason = body.reason !== undefined ? body.reason : first.reason;
+    const days = expandWorkingDays(startDate, endDate);
+    if (!days.length) return err(400, 'No working days in the selected range');
+    const hours = type === 'BANK_HOLIDAY' ? MAX_LEAVE_HOURS_PER_DAY : (halfDay ? HALF_DAY_HOURS : MAX_LEAVE_HOURS_PER_DAY);
+    for (let i = leave.length - 1; i >= 0; i--) if (leave[i].submissionId === p[2]) leave.splice(i, 1);
+    for (const d of days) {
+      leave.push({
+        id: uid('l'), submissionId: p[2], userId: first.userId, domainId: first.domainId, type, date: d, hours, halfDay,
+        startDate, endDate, reason, status: 'PENDING', requestedAt: first.requestedAt,
+      });
+    }
+    db.save();
+    return ok(leaveViewFor(db, p[2]));
+  }
+
+  if (method === 'POST' && p[3] === 'withdraw') {
+    const rows = leave.filter((l) => l.submissionId === p[2]);
+    if (!rows.length) return err(404, 'Request not found');
+    if (rows[0].userId !== me.id && !isAdmin(me)) return err(403, 'Forbidden');
+    if (rows[0].status !== 'PENDING') return err(400, 'Only pending requests can be withdrawn');
+    rows.forEach((r) => (r.status = 'WITHDRAWN'));
+    db.save();
+    return ok(leaveViewFor(db, p[2]));
+  }
+
+  if (method === 'POST' && (p[3] === 'approve' || p[3] === 'reject')) {
+    if (!isAdmin(me)) return err(403, 'Admin only');
+    const rows = leave.filter((l) => l.submissionId === p[2]);
+    if (!rows.length) return err(404, 'Request not found');
+    const first = rows[0];
+    if (!canDecide(db, me, first)) return err(403, 'You cannot decide this request');
+    if (first.status !== 'PENDING') return err(400, 'Request already decided');
+    const decidedAt = new Date().toISOString();
+    if (p[3] === 'approve') {
+      const dates = new Set(rows.map((r) => r.date));
+      rows.forEach((r) => { r.status = 'APPROVED'; r.decidedBy = me.id; r.decidedAt = decidedAt; });
+      // New approval supersedes any earlier APPROVED leave on the same user+day.
+      for (const other of leave) {
+        if (other.submissionId !== p[2] && other.userId === first.userId
+          && other.status === 'APPROVED' && dates.has(other.date)) other.status = 'SUPERSEDED';
+      }
+    } else {
+      rows.forEach((r) => { r.status = 'REJECTED'; r.decidedBy = me.id; r.decidedAt = decidedAt; r.decisionReason = body.reason; });
+    }
+    const who = db.get('users').find((u) => u.id === first.userId);
+    const range = first.startDate === first.endDate ? first.startDate : `${first.startDate} to ${first.endDate}`;
+    audit(db, me, p[3] === 'approve' ? 'APPROVE' : 'REJECT', 'LEAVE',
+      `${p[3] === 'approve' ? 'Approved' : 'Rejected'} ${first.type} leave request for ${who?.name ?? first.userId} (${range})`,
+      first.userId, first.domainId);
+    db.save();
+    return ok(leaveViewFor(db, p[2]));
+  }
+  return err(405, 'Method not allowed');
+}
+
 // ------------------------- Visibility plan -------------------------
 
 function visibility(db: MockDb, me: User, query: URLSearchParams) {
@@ -416,7 +582,8 @@ function visibility(db: MockDb, me: User, query: URLSearchParams) {
       (e) => e.userId === u.id && scopeIds.includes(e.domainId) && e.date.startsWith(month),
     );
     const leaves = db.get('leaveRequests').filter(
-      (l) => l.userId === u.id && scopeIds.includes(l.domainId) && l.date.startsWith(month),
+      (l) => l.userId === u.id && scopeIds.includes(l.domainId) && l.date.startsWith(month)
+        && l.status !== 'WITHDRAWN' && l.status !== 'SUPERSEDED', // show pending + approved (+ rejected still filtered client-side)
     );
     return { userId: u.id, name: u.name, entries, leaves };
   });

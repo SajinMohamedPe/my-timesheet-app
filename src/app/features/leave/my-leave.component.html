@@ -1,0 +1,123 @@
+<dtt-page-header icon="event_note" title="My Leave" crumb="Visibility Plan · My Leave" />
+
+<div class="block">
+  <div class="block-h"><mat-icon class="bi">event_note</mat-icon><span class="bname">My leave requests</span>
+    <span class="bdesc">{{ pendingCount() }} pending</span><span class="spacer"></span>
+    <button class="btn green sm" (click)="openNew()"><mat-icon>add</mat-icon> Request leave</button>
+  </div>
+
+  <div class="block-body">
+    <div class="tabs">
+      <button [class.active]="tab()==='PENDING'" (click)="tab.set('PENDING')">Pending ({{ pendingCount() }})</button>
+      <button [class.active]="tab()==='ALL'" (click)="tab.set('ALL')">All</button>
+    </div>
+
+    <table class="dtt">
+      <thead><tr><th>Dates</th><th>Type</th><th>Days</th><th>Hours</th><th>Status</th><th>Notes</th><th>Action</th></tr></thead>
+      <tbody>
+        @for (r of filtered(); track r.id) {
+          <tr>
+            <td><b>{{ rangeLabel(r) }}</b></td>
+            <td><span class="tdot" [style.background]="typeColor(r.type)"></span>{{ typeLabel(r.type) }}</td>
+            <td>{{ r.days }}{{ r.halfDay ? ' × ½' : '' }}</td>
+            <td>{{ r.totalHours.toFixed(2) }}</td>
+            <td><span class="chip" [class]="statusClass(r.status)">{{ r.status }}</span></td>
+            <td class="notes">
+              @if (r.reason) { <div class="rsn">{{ r.reason }}</div> }
+              @if (r.status === 'REJECTED' && r.decisionReason) { <div class="dec">Admin: {{ r.decisionReason }}</div> }
+              @if (r.decidedByName) { <div class="muted small">{{ r.status === 'APPROVED' ? 'Approved' : 'Rejected' }} by {{ r.decidedByName }}</div> }
+            </td>
+            <td>
+              @if (r.status === 'PENDING') {
+                <div class="actbtns">
+                  <button class="btn outline sm" (click)="openEdit(r)"><mat-icon>edit</mat-icon> Edit</button>
+                  <button class="btn danger sm" (click)="askWithdraw(r)"><mat-icon>undo</mat-icon> Withdraw</button>
+                </div>
+              } @else { <span class="muted small">—</span> }
+            </td>
+          </tr>
+        }
+        @if (!filtered().length) {
+          <tr><td colspan="7" class="empty muted">No {{ tab()==='PENDING' ? 'pending ' : '' }}requests. Click “Request leave” to submit one.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Request leave pop-up -->
+@if (showForm()) {
+  <div class="backdrop" (click)="closeForm()">
+    <div class="reqmodal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <div class="rm-head">
+        <h3>{{ editingId() ? 'Edit leave request' : 'Request leave' }}</h3>
+        <button class="x" (click)="closeForm()"><mat-icon>close</mat-icon></button>
+      </div>
+
+      <div class="field">
+        <div class="flabel">Leave type</div>
+        <div class="typegrid">
+          @for (t of types; track t.type) {
+            <button type="button" class="typechip" [class.on]="form.type === t.type"
+              [style.--tc]="t.color" (click)="form.type = t.type">
+              <span class="tdot" [style.background]="t.color"></span>{{ t.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="frow">
+        <div class="field">
+          <div class="flabel">Start date</div>
+          <div class="dateinput" (click)="sp.open()">
+            <input [matDatepicker]="sp" [(ngModel)]="form.start" readonly />
+            <mat-datepicker-toggle [for]="sp"><mat-icon matDatepickerToggleIcon>calendar_today</mat-icon></mat-datepicker-toggle>
+            <mat-datepicker #sp></mat-datepicker>
+          </div>
+        </div>
+        <div class="field">
+          <div class="flabel">End date</div>
+          <div class="dateinput" (click)="ep.open()">
+            <input [matDatepicker]="ep" [(ngModel)]="form.end" [min]="form.start" readonly />
+            <mat-datepicker-toggle [for]="ep"><mat-icon matDatepickerToggleIcon>calendar_today</mat-icon></mat-datepicker-toggle>
+            <mat-datepicker #ep></mat-datepicker>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="flabel">Duration</div>
+        <div class="seg">
+          <button type="button" [class.on]="!form.halfDay" (click)="form.halfDay = false">Full day <span>7.25h</span></button>
+          <button type="button" [class.on]="form.halfDay" (click)="form.halfDay = true">Half day <span>4h</span></button>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="flabel">Reason <span class="opt">(optional)</span></div>
+        <input class="txt" type="text" [(ngModel)]="form.reason" placeholder="e.g. Family event" />
+      </div>
+
+      <p class="hint"><mat-icon>info</mat-icon> Weekends and Irish bank holidays in the range are skipped. Every request needs domain-admin approval before it shows on your timesheet.</p>
+      @if (error()) { <p class="err">{{ error() }}</p> }
+
+      <div class="rm-foot">
+        <button class="btn ghost" (click)="closeForm()">Cancel</button>
+        <button class="btn green" [disabled]="!canSubmit() || saving()" (click)="submit()">
+          {{ editingId() ? 'Save changes' : 'Submit request' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<dtt-confirm-dialog
+  [open]="!!withdrawTarget()"
+  title="Withdraw request?"
+  [message]="'Withdraw your ' + (withdrawTarget() ? typeLabel(withdrawTarget()!.type) : '') + ' request (' + (withdrawTarget() ? rangeLabel(withdrawTarget()!) : '') + ')?'"
+  detail="It will be removed from the approval queue. You can submit a new request anytime."
+  confirmLabel="Withdraw"
+  cancelLabel="Keep it"
+  [danger]="true"
+  (confirm)="confirmWithdraw()"
+  (cancel)="withdrawTarget.set(null)" />

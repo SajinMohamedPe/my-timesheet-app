@@ -1,7 +1,7 @@
 import { WbsCode } from '../models/models';
 import { buildSeed, MockData } from './seed';
 
-const STORAGE_KEY = 'dtt.mockdb.v4';
+const STORAGE_KEY = 'dtt.mockdb.v5';
 
 /**
  * localStorage-backed store for the mock API. Survives page refresh so the

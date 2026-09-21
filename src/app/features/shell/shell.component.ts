@@ -142,6 +142,7 @@ export class ShellComponent implements OnInit {
     { label: 'Home', icon: 'grid_view', desc: 'Dashboard overview', link: '/home' },
     { label: 'Timesheets', icon: 'grid_on', desc: 'Weekly time entry', link: '/timesheets' },
     { label: 'Monthly View', icon: 'visibility', desc: 'Team leave calendar for the month', link: '/visibility' },
+    { label: 'My Leave', icon: 'event_note', desc: 'Request leave and track your requests', link: '/my-leave' },
     { label: 'Reports', icon: 'bar_chart', desc: 'Download monthly timesheet reports', link: '/reports', admin: true },
     { label: 'Leave Approvals', icon: 'fact_check', desc: 'Approve or reject pending leave', link: '/leave-approvals', admin: true },
     { label: 'Timesheet Audit', icon: 'history', desc: 'History of admin edits', link: '/audit', admin: true },
@@ -179,6 +180,7 @@ export class ShellComponent implements OnInit {
     const tt: NavItem[] = [
       { label: 'Timesheets', icon: 'grid_on', link: '/timesheets' },
       { label: 'Monthly View', icon: 'visibility', link: '/visibility' },
+      { label: 'My Leave', icon: 'event_note', link: '/my-leave' },
     ];
     if (admin) {
       tt.push({ label: 'Leave Approvals', icon: 'fact_check', link: '/leave-approvals' });

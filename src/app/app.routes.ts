@@ -12,6 +12,7 @@ export const routes: Routes = [
       { path: 'home', loadComponent: () => import('./features/home/home.component').then((m) => m.HomeComponent) },
       { path: 'timesheets', loadComponent: () => import('./features/timesheets/weekly-grid.component').then((m) => m.WeeklyGridComponent) },
       { path: 'visibility', loadComponent: () => import('./features/visibility/visibility.component').then((m) => m.VisibilityComponent) },
+      { path: 'my-leave', loadComponent: () => import('./features/leave/my-leave.component').then((m) => m.MyLeaveComponent) },
       { path: 'reports', loadComponent: () => import('./features/reports/reports.component').then((m) => m.ReportsComponent), canActivate: [adminGuard] },
       { path: 'audit', loadComponent: () => import('./features/audit/audit.component').then((m) => m.AuditComponent), canActivate: [adminGuard] },
       { path: 'leave-approvals', loadComponent: () => import('./features/leave/leave-approvals.component').then((m) => m.LeaveApprovalsComponent), canActivate: [adminGuard] },

@@ -1,5 +1,6 @@
 import {
   AuditEntry, Domain, LeaveRequest, TimeEntry, User, WbsCode,
+  HALF_DAY_HOURS, MAX_LEAVE_HOURS_PER_DAY,
 } from '../models/models';
 
 // A fixed "today" reference used by seed dates so the demo is deterministic.
@@ -106,20 +107,21 @@ export function buildSeed(): MockData {
     entry('u-carol', 'd-fish', 'w-2002', '2026-09-18', 8, 'Bulk renewals'),
   ];
 
+  // A single-day leave record belonging to a one-day request (submissionId = its id).
+  const leave = (
+    id: string, userId: string, domainId: string, type: LeaveRequest['type'], date: string,
+    halfDay: boolean, status: LeaveRequest['status'], requestedAt: string,
+    extra: Partial<LeaveRequest> = {},
+  ): LeaveRequest => ({
+    id, submissionId: id, userId, domainId, type, date,
+    hours: halfDay ? HALF_DAY_HOURS : MAX_LEAVE_HOURS_PER_DAY, halfDay,
+    startDate: date, endDate: date, status, requestedAt, ...extra,
+  });
   const leaveRequests: LeaveRequest[] = [
-    {
-      id: 'l-1', userId: 'u-bob', domainId: 'd-aim', type: 'ANNUAL', date: '2026-09-22',
-      hours: 7.25, notes: 'Family day', status: 'PENDING', requestedAt: '2026-09-18T09:00:00Z',
-    },
-    {
-      id: 'l-2', userId: 'u-carol', domainId: 'd-fish', type: 'SICK', date: '2026-09-19',
-      hours: 3.63, status: 'PENDING', requestedAt: '2026-09-19T08:30:00Z',
-    },
-    {
-      id: 'l-3', userId: 'u-alice', domainId: 'd-aim', type: 'TRAINING', date: '2026-09-12',
-      hours: 7.25, status: 'APPROVED', requestedAt: '2026-09-08T10:00:00Z',
-      decidedBy: 'u-admin', decidedAt: '2026-09-09T11:00:00Z',
-    },
+    leave('l-1', 'u-bob', 'd-aim', 'ANNUAL', '2026-09-22', false, 'PENDING', '2026-09-18T09:00:00Z', { reason: 'Family day' }),
+    leave('l-2', 'u-carol', 'd-fish', 'SICK', '2026-09-19', true, 'PENDING', '2026-09-19T08:30:00Z'),
+    leave('l-3', 'u-alice', 'd-aim', 'TRAINING', '2026-09-12', false, 'APPROVED', '2026-09-08T10:00:00Z',
+      { decidedBy: 'u-admin', decidedAt: '2026-09-09T11:00:00Z' }),
   ];
 
   const up = (id: string, domainId: string, workDate: string, wbsCode: string, project: string,

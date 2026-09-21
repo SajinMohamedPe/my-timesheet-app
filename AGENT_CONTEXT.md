@@ -76,7 +76,7 @@ src/app/
     timesheets/  the weekly grid (core screen)
     visibility/  Visibility Plan + Live/Uploaded/Differences + upload + summary download
     reports/     per-employee & consolidated exports
-    leave/       leave approvals queue (admin)
+    leave/       my-leave (request leave + track own requests) + leave approvals queue (admin)
     audit/       timesheet audit log (admin)
     admin/       Admin Panel: Domains / WBS Codes / Users & Roles
     coming-soon/ placeholder for Billing/Forecasting/Leakage/Budget (admin-only)
@@ -134,17 +134,13 @@ rejected leave is kept off the timesheet grid.
   collapsible **Absence / Leave** group. Columns = the 7 days; right column = weekly total; footer = daily totals + grand total.
 - **Time cells:** type hours (2-decimal display, e.g. `8.00`); autosave on
   change; empty/0 deletes the entry. **Time saves freely — no approval.**
-- **Add charge code / Add leave type:** searchable autocomplete pickers; the
-  Absence group only lists leave types you've added or that have data this week.
-- **Leave cells:** editable, capped at **7.25h/day**. Entering or editing leave
-  opens a **review modal** ("… will be sent to your domain admin for review")
-  before submitting. **All leave requires approval**; editing a leave resets it
-  to Pending. Pending cells have an **amber background**; a thin green left accent
-  shows approved. Leave text is black + bold. **Rejected leave is NOT shown on the
-  grid** — it's removed so the day is free to log again, and the contractor is told
-  about the rejection on their Home page instead.
-- **Delete:** every WBS and leave row has an always-visible trash icon → opens a
-  confirmation modal explaining the **whole record** for the week will be removed.
+- **Add charge code:** searchable autocomplete picker (time rows only).
+- **Leave is NOT entered here.** The Absence/Leave group is **read-only** and shows
+  only **APPROVED** leave (green left accent); a "Request leave" link jumps to the
+  My Leave screen. Pending/rejected leave never appears on the grid. (Leave is
+  requested and managed on **My Leave** — see below.)
+- **Delete:** every WBS (time) row has a trash icon → confirmation modal removing
+  the **whole record** for the week. (Leave rows aren't deletable here.)
 - **Admins** get an employee selector to view/edit anyone's timesheet in their
   domain; admin edits to others are recorded in the audit log. For admins the
   grid is **scoped to the active domain** (only that domain's group, WBS options,
@@ -186,9 +182,25 @@ Per-employee or **All Employees — Consolidated** monthly report; Excel (one sh
 per employee) or PDF (one section per employee). Quick per-person XLS/PDF cards.
 Generated client-side now; backend export endpoints are documented for later.
 
+### My Leave (`/my-leave`, all users)
+Where leave is requested and tracked. A **"Request leave" pop-up** collects: leave
+type (colored chips — Annual/Sick/Training/Internal; Bank Holiday is auto so not
+requestable), **Start/End date** (Material datepicker, inline), **Full day 7.25h /
+Half day 4h**, and an optional reason. Domain is **auto-assigned** (the user's
+domain — no picker). Submitting creates one **request** that the server expands to
+per-day leave over **working days** (skips weekends + Irish bank holidays), uniform
+full/half hours, status PENDING. Below the button: **Pending / All** tabs listing
+the user's requests (range, type, days, hours, status, decision reason, who decided).
+**Pending** requests can be **edited** (re-expands) or **withdrawn**; approved/rejected
+are locked (change = new request). See decisions #16.
+
 ### Leave Approvals (`/leave-approvals`, admin)
-Queue of leave requests for the current domain; Pending tab + All; Approve/Reject
-(records to audit). Shows requester, type, date, hours, status.
+Queue grouped **one row per request** (range, type, duration, reason). Pending tab +
+All; **Approve** (one-click) or **Reject** (modal with an optional reason shown to the
+requester). Approving **supersedes** any earlier approved leave on the same days.
+Approval routing: an admin can't decide their own request; a `DOMAIN_ADMIN` decides
+only employees' requests in their domain; any admin's own request goes to a
+**Super Admin**. All actions audited.
 
 ### Timesheet Audit (`/audit`, admin)
 Chronological log of admin edits to other people's time/leave, plus leave
@@ -270,6 +282,18 @@ These were resolved through requirements interviews; keep them unless explicitly
 15. **Dark mode for everyone.** A per-user theme toggle (persisted, OS-default)
     is available to all roles. Everything is themed through `--dtt-*` tokens so
     no component hard-codes colours; this is frontend-only (no backend).
+16. **Leave is requested as a range via My Leave, not typed on the grid.** A
+    request = start/end + type + Full(7.25h)/Half(4h); the server expands it to
+    per-day rows over **working days** (skips weekends + Irish bank holidays),
+    grouped by `submissionId`. **Half = flat 4h**, uniform across the range. Domain
+    is auto-assigned (no picker). Requests need approval; **only APPROVED leave
+    shows on the timesheet (read-only)**, pending+approved show on Monthly View,
+    rejected is surfaced on Home with the admin's reason. Pending requests are
+    editable/withdrawable; approved ones change only via a **new request that
+    supersedes** the old days. Approval routing: never self-approve; a domain admin
+    approves employees only; an admin's own request → Super Admin. Endpoints:
+    `/api/leave-requests` (+ `/withdraw|approve|reject`); per-day `/api/leave`
+    still backs grid/Monthly View reads and the admin day-edit modal.
 
 ---
 

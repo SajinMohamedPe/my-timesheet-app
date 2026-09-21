@@ -25,7 +25,7 @@ makes the app live with **no frontend changes**.
 - **User type**
   - `CONTRACTOR` — logs time in-app.
   - `STAFF` — does not log in-app; their hours arrive via **uploaded** external timesheet (xlsx). The Project Summary **merges** in-app + uploaded, with **in-app winning** on conflict.
-- **Approval**: time entries **save freely** (no approval). **Leave always requires approval** by a domain admin (statuses `PENDING`/`APPROVED`/`REJECTED`). Leave is entered as **hours per day, max 7.25** (the standard Deloitte working day). **Editing a leave's hours resets it to `PENDING`** (re-approval). Leave rows can be deleted.
+- **Approval**: time entries **save freely** (no approval). **Leave always requires approval** by a domain admin (statuses `PENDING`/`APPROVED`/`REJECTED`/`WITHDRAWN`/`SUPERSEDED`). Users request leave as a **range** (start/end date + type + **Full day 7.25h / Half day 4h**) from the **My Leave** screen; the server expands it to per-day rows over working days (see §4.6b). Approved leave shows **read-only** on the timesheet grid; **rejected leave is kept off the grid** and surfaced to the requester on Home. Editing a pending request re-expands it (stays pending); once approved, a change means a **new request** (which supersedes the old days on approval).
 - **Bank Holiday leave is always a full day = 7.25h** (any submitted value is coerced to 7.25 server-side).
 - **Irish public (bank) holidays are auto-marked** on the Timesheet and Visibility Plan for every user, as Bank Holiday / 7.25h, without needing a leave record. The frontend computes the Republic-of-Ireland holiday calendar client-side (New Year's Day; St Brigid's Day — 1 Feb if Friday else first Mon in Feb; St Patrick's Day; Easter Monday; first Mon of May/Jun/Aug; last Mon of Oct; Christmas Day; St Stephen's Day) and overlays them (read-only). The backend does **not** need to create these records, but any server-side report/day-count logic must apply the **same holiday calendar** so totals agree. Weekends are also auto-marked Bank Holiday (no hours).
 - **Hours convention**: the standard working day is **7.25h** (weekly target 36.25h) and caps leave per day. Note the Project Summary still expresses **days = hours / 8** per the finance spec — the 7.25 cap applies to leave entry, not to the report's day divisor. All hour values display to **2 decimals** (e.g. `8.00`).
@@ -113,19 +113,33 @@ time_entry(
   updated_by    uuid fk -> app_user(id)
 )
 
-leave_request(
+leave_request(                            -- ONE PER-DAY row; rows are grouped by submission_id
   id            uuid pk,
+  submission_id uuid not null,            -- groups the per-day rows created by one request
   user_id       uuid fk -> app_user(id),
   domain_id     uuid fk -> domain(id),
   type          text not null,            -- ANNUAL|SICK|TRAINING|INTERNAL|BANK_HOLIDAY
   leave_date    date not null,
-  hours         numeric(4,2) not null check (hours > 0 and hours <= 7.25),
+  hours         numeric(4,2) not null check (hours > 0 and hours <= 7.25),  -- 7.25 full, 4 half
+  half_day      boolean not null default false,
+  start_date    date not null,            -- request range (denormalised, same for the group)
+  end_date      date not null,
+  reason        text,
   notes         text,
-  status        text not null default 'PENDING',
+  status        text not null default 'PENDING',  -- PENDING|APPROVED|REJECTED|WITHDRAWN|SUPERSEDED
   requested_at  timestamptz not null,
   decided_by    uuid null fk -> app_user(id),
-  decided_at    timestamptz null
+  decided_at    timestamptz null,
+  decision_reason text                    -- admin's note when rejecting
 )
+```
+A **leave request** is a range the user submits (start date, end date, type, full/half). The
+backend **expands it into one `leave_request` row per working day** — skipping weekends and Irish
+bank holidays — all sharing a `submission_id`, and the request's status is the shared status of its
+rows. Full day = **7.25h**, half day = **4h** (uniform across the range). A backend may instead model
+the submission as its own table and materialise per-day rows on read; either way the API below returns
+the aggregated `LeaveRequestView` (one object per `submission_id`).
+```
 
 uploaded_timesheet_row(                   -- parsed external export rows
   id            uuid pk,
@@ -222,13 +236,37 @@ JWT claims: `sub`=userId, `role`, `domainIds` (array), plus standard `exp`/`iat`
 
 ### 4.6 Leave
 
+These **per-day** endpoints back the grid/Monthly View reads and the admin day-edit modal. Users create and manage leave through the **request** endpoints in §4.6b, not these.
+
 - **GET `/api/leave?domainId=&status=&userId=`** → `LeaveRequest[]` (employees: own only).
-  `LeaveRequest = { id, userId, domainId, type, date, hours, notes?, status, requestedAt, decidedBy?, decidedAt? }`.
-- **POST `/api/leave`** — `{ "userId?","domainId","type","date","hours","notes?" }` → `201` with `status=PENDING`. Clamp `hours` to `(0, 7.25]`.
-- **PUT `/api/leave/{id}`** — `{ "hours?","notes?" }`. Owner or in-scope admin. **Changing hours resets `status` to `PENDING`** and clears `decidedBy`/`decidedAt` (re-approval). Admin edits to others are audited.
+  `LeaveRequest = { id, submissionId, userId, domainId, type, date, hours, halfDay, startDate, endDate, reason?, notes?, status, requestedAt, decidedBy?, decidedAt?, decisionReason? }`.
+- **POST `/api/leave`** — `{ "userId?","domainId","type","date","hours","notes?" }` → `201` with `status=PENDING` (single-day; `submissionId` auto). Clamp `hours` to `(0, 7.25]`.
+- **PUT `/api/leave/{id}`** — `{ "hours?","notes?" }`. Owner or in-scope admin. **Changing hours resets `status` to `PENDING`**. Admin edits to others are audited.
 - **DELETE `/api/leave/{id}`** → `{ "deleted": true }`. Owner or in-scope admin (admin deletes audited).
-- **POST `/api/leave/{id}/approve`** *(admin, own domain)* → `LeaveRequest` (`APPROVED`), audited.
-- **POST `/api/leave/{id}/reject`** *(admin, own domain)* → `LeaveRequest` (`REJECTED`), audited.
+- **POST `/api/leave/{id}/approve`** / **`/reject`** *(admin, own domain)* → the per-day `LeaveRequest`, audited. (Used by the Monthly View day-edit modal; the request-level endpoints below are preferred for the normal flow.)
+
+### 4.6b Leave requests (range submissions — the primary flow)
+
+A user submits a **request** (a date range + type + full/half); the server expands it to per-day rows (§3) and returns the aggregated view:
+
+```jsonc
+LeaveRequestView = {
+  "id": "<submissionId>", "userId","userName","domainId","domainName","type",
+  "startDate","endDate","halfDay","hoursPerDay","days","totalHours",
+  "reason?","status","requestedAt","decidedBy?","decidedByName?","decidedAt?","decisionReason?"
+}
+```
+
+- **GET `/api/leave-requests?scope=mine|queue&status=&domainId=`** → `LeaveRequestView[]` (grouped by `submissionId`, newest first).
+  - `scope=mine` (default): the caller's own requests (the **My Leave** screen).
+  - `scope=queue` *(admin)*: requests the caller may decide (the **Leave Approvals** screen) — see routing below.
+- **POST `/api/leave-requests`** — `{ "domainId","type","startDate","endDate","halfDay","reason?" }` → `201 LeaveRequestView`. Server expands to per-day rows for **working days only** (skips weekends + Irish bank holidays), `hours` = 7.25 (full) or 4 (half) per day, `status=PENDING`. `400` if the range has no working days or `endDate < startDate`, or the user isn't in `domainId`.
+- **PUT `/api/leave-requests/{submissionId}`** — `{ "type?","startDate?","endDate?","halfDay?","reason?" }`. **Only while `PENDING`** (else `400`). Owner or in-scope admin. Re-expands the range (replaces the per-day rows), stays `PENDING`.
+- **POST `/api/leave-requests/{submissionId}/withdraw`** — owner (or admin). **Only while `PENDING`** → status `WITHDRAWN`.
+- **POST `/api/leave-requests/{submissionId}/approve`** *(admin)* → all rows `APPROVED`. **Supersede rule:** any earlier `APPROVED` leave for the same user on a day now covered is set to `SUPERSEDED` (no duplicates). Audited.
+- **POST `/api/leave-requests/{submissionId}/reject`** *(admin)* — `{ "reason?" }` → all rows `REJECTED` with `decisionReason`. Audited.
+
+**Approval routing (enforce server-side):** a user may never decide their **own** request. A `DOMAIN_ADMIN` may decide only **EMPLOYEE** requests in their allocated domain(s); a request raised by any admin (`DOMAIN_ADMIN`/`SUPER_ADMIN`) can be decided **only by a `SUPER_ADMIN`**. `scope=queue` returns exactly the set the caller may decide.
 
 ### 4.7 Visibility plan
 
@@ -330,6 +368,7 @@ Users: `super` (SUPER_ADMIN), `admin` (DOMAIN_ADMIN, both domains), `alice`/`bob
 These are handled entirely by the frontend from the JSON already specified above — listed here so the backend agent does **not** try to add endpoints or fields for them:
 
 - **Over-allocation flagging.** Any day whose total (work + non-rejected leave + auto bank holiday) exceeds **8h** is highlighted with an alert style and a "!" badge on the **Live Plan**, **Uploaded Timesheet** and **Differences** grids, and the person's name is flagged. This is computed client-side from `/api/visibility` and `/api/uploads` data. The backend returns raw hours only.
+- **Timesheet grid leave is APPROVED-only and read-only.** The weekly grid shows only `APPROVED` leave (no leave entry there — leave is requested on **My Leave**); the **Monthly View** still shows `PENDING` + `APPROVED` so admins see upcoming leave. The backend returns all non-withdrawn/superseded rows; the client filters per view.
 - **Differences / reconciliation.** The per-person-per-day comparison of in-app vs uploaded hours is computed client-side by matching normalised names + dates; no diff endpoint is required.
 - **Irish bank-holiday & weekend overlays.** Auto-marked client-side (see §1). The backend stores no records for these, but any server-side report/day-count logic must apply the **same** holiday calendar so totals agree.
 - **Dark mode.** A per-viewer theme toggle (persisted in `localStorage`), available to all roles. No backend involvement.
