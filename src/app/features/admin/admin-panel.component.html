@@ -131,8 +131,10 @@
               @else if (auth.isSuperAdmin()) {
                 @if (u.role === 'EMPLOYEE') { <button class="btn green sm" (click)="openAllocate(u)"><mat-icon>vpn_key</mat-icon> Grant Admin</button> }
                 @else {
-                  <button class="btn ghost sm" (click)="openAllocate(u)"><mat-icon>workspaces</mat-icon> Domains</button>
-                  <button class="btn ghost sm" (click)="revoke(u)">Revoke</button>
+                  <div class="actbtns">
+                    <button class="btn outline sm" (click)="openAllocate(u)"><mat-icon>workspaces</mat-icon> Domains</button>
+                    <button class="btn danger sm" (click)="revoke(u)"><mat-icon>person_remove</mat-icon> Revoke</button>
+                  </div>
                 }
               } @else { <span class="muted small">Super Admin only</span> }
             </td>

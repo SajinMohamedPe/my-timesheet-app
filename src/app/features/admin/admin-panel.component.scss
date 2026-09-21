@@ -14,6 +14,13 @@
 .btn.green { background: var(--dtt-green); color: #fff; border-color: var(--dtt-green); }
 .btn.ghost { color: var(--dtt-muted); }
 .btn.sm { padding: 5px 10px; font-size: 12px; }
+/* Clearly-outlined secondary/danger actions (ghost was too faint on white). */
+.btn.outline { border-color: var(--dtt-green); color: var(--dtt-green-dark); background: var(--dtt-card); }
+.btn.outline:hover { background: var(--dtt-tint); }
+.btn.danger { border-color: var(--dtt-alert); color: var(--dtt-alert-ink); background: var(--dtt-card); }
+.btn.danger:hover { background: var(--dtt-alert-soft); }
+/* Keep the two admin actions on one line, aligned. */
+.actbtns { display: inline-flex; align-items: center; gap: 8px; }
 .btn:disabled { opacity: .5; cursor: default; }
 .btn mat-icon { font-size: 18px; width: 18px; height: 18px; }
 
