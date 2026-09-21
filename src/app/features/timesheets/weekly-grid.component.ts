@@ -176,7 +176,9 @@ export class WeeklyGridComponent implements OnInit {
     const weekIsos = new Set(this.days().map((d) => isoDate(d)));
     const vis = this.visibleDomainIdSet();
     const withData = new Set(
-      this.leaves().filter((l) => weekIsos.has(l.date) && vis.has(l.domainId)).map((l) => l.type),
+      this.leaves()
+        .filter((l) => weekIsos.has(l.date) && vis.has(l.domainId) && l.status !== 'REJECTED')
+        .map((l) => l.type),
     );
     this.extraLeave().forEach((t) => withData.add(t));
     // Irish public holidays are auto-marked, so always show the Bank Holiday row
@@ -247,7 +249,9 @@ export class WeeklyGridComponent implements OnInit {
   leaveFor(type: LeaveType, day: Date): LeaveRequest | undefined {
     const d = isoDate(day);
     const vis = this.visibleDomainIdSet();
-    return this.leaves().find((l) => l.type === type && l.date === d && vis.has(l.domainId));
+    // Rejected leave is not shown on the timesheet grid (the contractor is told
+    // about a rejection on Home instead); the day is free to log again.
+    return this.leaves().find((l) => l.type === type && l.date === d && vis.has(l.domainId) && l.status !== 'REJECTED');
   }
   leaveHours(type: LeaveType, day: Date): number | null {
     const l = this.leaveFor(type, day);

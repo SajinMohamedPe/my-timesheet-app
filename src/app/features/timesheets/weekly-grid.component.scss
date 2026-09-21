@@ -95,8 +95,8 @@ tbody.grp tr.datarow td.c-day.weekend, tbody.grp tr.addrow td.c-day.weekend { ba
 tbody.grp td.c-day.leave.pending  { background: #ffe9bf; box-shadow: inset 3px 0 0 #f5a623; }
 tbody.grp td.c-day.leave.pending input:focus { background: #fffaf0; }
 tbody.grp td.c-day.leave.approved { box-shadow: inset 3px 0 0 #86bc25; }
-tbody.grp td.c-day.leave.rejected { box-shadow: inset 3px 0 0 #e53935; }
-tbody.grp td.c-day.leave.rejected input { text-decoration: line-through; }
+/* Rejected leave is not rendered on the grid (see leaveFor); the contractor is
+   told about a rejection on Home instead. */
 .leave-label { font-weight: 700; color: var(--dtt-ink); }
 /* Auto-filled Irish bank holiday: read-only, bank-styled */
 tbody.grp td.c-day.autobh { background: #eef1f4; box-shadow: inset 3px 0 0 #607d8b; }

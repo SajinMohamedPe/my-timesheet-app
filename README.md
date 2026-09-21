@@ -15,7 +15,9 @@ Angular 20 UI for a **contractor timesheet system** for Deloitte Ireland.
   Hours show to 2 decimals; time saves automatically.
 - **Leave** — entered as hours (max **7.25/day**); every leave opens a review
   modal and goes to the **domain admin for approval** (pending cells are amber).
-- **Visibility Plan** — colour-coded month grid; admin tabs for **Live Plan /
+  A **rejected** leave is removed from the contractor's timesheet and flagged on
+  their Home page instead (so the grid stays clean).
+- **Monthly View** — colour-coded month grid; admin tabs for **Live Plan /
   Uploaded Timesheet / Differences**, xlsx upload, and one-click **Project
   Summary** download (Excel/PDF, this domain or all domains). Days over **8h**
   are flagged (alert tint + "!" badge) across all three grids; admins click a

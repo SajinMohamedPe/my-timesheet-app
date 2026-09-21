@@ -15,7 +15,7 @@ const TYPE_LABEL: Record<string, string> = {
   imports: [MatIconModule, PageHeaderComponent],
   template: `
   <dtt-page-header icon="fact_check" title="Leave Approvals"
-    [crumb]="'Time Tracking · Leave Approvals · ' + (ctx.selected()?.name ?? 'All domains')" />
+    [crumb]="'Visibility Plan · Leave Approvals · ' + (ctx.selected()?.name ?? 'All domains')" />
 
   <div class="tabs">
     <button [class.active]="filter()==='PENDING'" (click)="filter.set('PENDING')">Pending ({{ pending().length }})</button>

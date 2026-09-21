@@ -128,7 +128,7 @@ export class ShellComponent implements OnInit {
   collapsed = signal(false);
   query = signal('');
   open = signal(false);
-  expanded = signal(new Set<string>(['Time Tracking', 'Project Management']));
+  expanded = signal(new Set<string>(['Visibility Plan', 'Project Management']));
 
   ngOnInit() { this.ctx.load(); }
 
@@ -141,7 +141,7 @@ export class ShellComponent implements OnInit {
   private readonly features: Feature[] = [
     { label: 'Home', icon: 'grid_view', desc: 'Dashboard overview', link: '/home' },
     { label: 'Timesheets', icon: 'grid_on', desc: 'Weekly time entry', link: '/timesheets' },
-    { label: 'Visibility Plan', icon: 'visibility', desc: 'Team leave calendar for the month', link: '/visibility' },
+    { label: 'Monthly View', icon: 'visibility', desc: 'Team leave calendar for the month', link: '/visibility' },
     { label: 'Reports', icon: 'bar_chart', desc: 'Download monthly timesheet reports', link: '/reports', admin: true },
     { label: 'Leave Approvals', icon: 'fact_check', desc: 'Approve or reject pending leave', link: '/leave-approvals', admin: true },
     { label: 'Timesheet Audit', icon: 'history', desc: 'History of admin edits', link: '/audit', admin: true },
@@ -178,7 +178,7 @@ export class ShellComponent implements OnInit {
     const admin = this.auth.isAdmin();
     const tt: NavItem[] = [
       { label: 'Timesheets', icon: 'grid_on', link: '/timesheets' },
-      { label: 'Visibility Plan', icon: 'visibility', link: '/visibility' },
+      { label: 'Monthly View', icon: 'visibility', link: '/visibility' },
     ];
     if (admin) {
       tt.push({ label: 'Leave Approvals', icon: 'fact_check', link: '/leave-approvals' });
@@ -186,7 +186,7 @@ export class ShellComponent implements OnInit {
       tt.push({ label: 'Timesheet Audit', icon: 'history', link: '/audit' });
     }
     const core: NavParent[] = [
-      { label: 'Time Tracking', icon: 'schedule', expandable: true, children: tt },
+      { label: 'Visibility Plan', icon: 'visibility', expandable: true, children: tt },
     ];
     // Billing / Forecasting / Leakage are admin & super-admin only.
     if (admin) {

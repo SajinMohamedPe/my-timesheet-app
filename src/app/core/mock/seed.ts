@@ -31,7 +31,7 @@ export interface UploadedRow {
 
 export function buildSeed(): MockData {
   const domains: Domain[] = [
-    { id: 'd-aim', name: 'AIM', description: 'Asset & Investment Management', active: true },
+    { id: 'd-aim', name: 'AIM', description: 'Animal Identification and Movements', active: true },
     { id: 'd-fish', name: 'Fisheries', description: 'Fisheries Digital Programme', active: true },
   ];
 

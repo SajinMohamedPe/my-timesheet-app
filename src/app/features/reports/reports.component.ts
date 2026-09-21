@@ -13,7 +13,7 @@ import { User } from '../../core/models/models';
   selector: 'dtt-reports',
   imports: [FormsModule, MatIconModule, PageHeaderComponent],
   template: `
-  <dtt-page-header icon="bar_chart" title="Reports" crumb="Time Tracking · Reports" />
+  <dtt-page-header icon="bar_chart" title="Reports" crumb="Visibility Plan · Reports" />
 
   <div class="block">
     <div class="block-h"><mat-icon class="bi">download</mat-icon><span class="bname">Generate Report</span>

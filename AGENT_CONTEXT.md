@@ -115,13 +115,18 @@ localStorage; guards then allow entry. Real backend: JWT access+refresh.
   all scoped screens filter by. Hidden for employees (see decision #3).
 - **Dark-mode toggle** (top bar, all roles) flips light/dark via `ThemeService`.
 - **Reset demo data** ⟳ icon (also on Home) reseeds the mock.
-- **Sidebar** groups: CORE (Time Tracking → Timesheets, Visibility Plan, and for
-  admins Leave Approvals/Reports/Timesheet Audit; plus Billing/Forecasting/
-  Leakage for admins), PROJECTS (admin only), ADMIN (admin only).
+- **Sidebar** groups: CORE (**Visibility Plan** group → Timesheets, **Monthly
+  View**, and for admins Leave Approvals/Reports/Timesheet Audit; plus Billing/
+  Forecasting/Leakage for admins), PROJECTS (admin only), ADMIN (admin only).
+  (Note the naming: the *group* is "Visibility Plan"; the month-grid *screen*
+  at `/visibility` is labelled "Monthly View".)
 
 ### Home (`/home`)
 Dashboard: hours logged this month, days (÷8), pending leave (own, or to-approve
-for admins), team size (admins). Quick-action links + Reset demo data.
+for admins), team size (admins). Quick-action links + Reset demo data. For a
+contractor, a **rejected-leave notice** lists any of their leave that a domain
+admin declined (date, type, hours) — this is how a rejection is surfaced, since
+rejected leave is kept off the timesheet grid.
 
 ### Weekly Timesheet grid (`/timesheets`) — the core screen
 - Replaces the old calendar/list/Log-Time screens. Shows **one week (Sun–Sat)**.
@@ -134,8 +139,10 @@ for admins), team size (admins). Quick-action links + Reset demo data.
 - **Leave cells:** editable, capped at **7.25h/day**. Entering or editing leave
   opens a **review modal** ("… will be sent to your domain admin for review")
   before submitting. **All leave requires approval**; editing a leave resets it
-  to Pending. Pending cells have an **amber background**; a thin left accent
-  shows approved (green) / rejected (red). Leave text is black + bold.
+  to Pending. Pending cells have an **amber background**; a thin green left accent
+  shows approved. Leave text is black + bold. **Rejected leave is NOT shown on the
+  grid** — it's removed so the day is free to log again, and the contractor is told
+  about the rejection on their Home page instead.
 - **Delete:** every WBS and leave row has an always-visible trash icon → opens a
   confirmation modal explaining the **whole record** for the week will be removed.
 - **Admins** get an employee selector to view/edit anyone's timesheet in their
@@ -143,7 +150,7 @@ for admins), team size (admins). Quick-action links + Reset demo data.
   grid is **scoped to the active domain** (only that domain's group, WBS options,
   leave rows and totals). For an employee's own grid, all their domains show.
 
-### Visibility Plan (`/visibility`)
+### Monthly View (`/visibility`) — labelled "Monthly View" in the UI, under the "Visibility Plan" nav group
 - Month grid, one row per person, cells colour-coded by the legend (on-site
   chargeable = green, annual = red, sick = magenta, training = **yellow**,
   internal = blue, bank holiday = blue-grey, pending = amber hatch). A day cell

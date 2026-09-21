@@ -11,7 +11,7 @@ import { AuditEntry } from '../../core/models/models';
   imports: [MatIconModule, DatePipe, PageHeaderComponent],
   template: `
   <dtt-page-header icon="history" title="Timesheet Audit"
-    [crumb]="'Time Tracking · Audit · ' + (ctx.selected()?.name ?? 'All domains')" />
+    [crumb]="'Visibility Plan · Audit · ' + (ctx.selected()?.name ?? 'All domains')" />
 
   <div class="block">
     <div class="block-h"><mat-icon class="bi">history</mat-icon><span class="bname">Edit history</span>
