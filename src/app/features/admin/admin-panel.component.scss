@@ -57,3 +57,9 @@
 .am-desc { font-size: 12px; }
 .am-foot { display: flex; align-items: center; gap: 10px; margin-top: 18px; }
 .am-foot .spacer { flex: 1; }
+.am-fields { display: flex; flex-direction: column; gap: 12px; margin: 16px 0 4px; }
+.am-fields label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 700;
+  letter-spacing: .04em; text-transform: uppercase; color: var(--dtt-muted); }
+.am-fields input { padding: 9px 11px; border: 1px solid var(--dtt-line); border-radius: 8px; font-size: 14px;
+  font-weight: 400; text-transform: none; letter-spacing: normal; color: var(--dtt-ink); background: var(--dtt-card); }
+.am-fields input:focus { outline: none; border-color: var(--dtt-green); }

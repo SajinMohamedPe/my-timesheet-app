@@ -39,6 +39,15 @@ export class AdminPanelComponent implements OnInit {
   allocSel = signal<Record<string, boolean>>({});
   // Revoke-admin confirmation modal
   revokeUser = signal<User | null>(null);
+  // Edit-domain modal
+  editingDomain = signal<Domain | null>(null);
+  editDomainForm = { name: '', description: '' };
+  // Rename-WBS modal
+  renamingWbs = signal<WbsCodeView | null>(null);
+  renameWbsValue = '';
+  // Delete confirmations
+  deleteDomainTarget = signal<Domain | null>(null);
+  deleteWbsTarget = signal<WbsCodeView | null>(null);
 
   constructor() {
     if (this.auth.isSuperAdmin()) this.tab.set('DOMAINS');
@@ -67,13 +76,18 @@ export class AdminPanelComponent implements OnInit {
     });
   }
   editDomain(d: Domain): void {
-    const name = prompt('Domain name', d.name); if (name === null) return;
-    const description = prompt('Description', d.description) ?? d.description;
-    this.api.updateDomain(d.id, { name, description }).subscribe(() => { this.load(); this.ctx.load(); });
+    this.editDomainForm = { name: d.name, description: d.description };
+    this.editingDomain.set(d);
   }
-  deleteDomain(d: Domain): void {
-    if (!confirm(`Delete domain ${d.name}? This cannot be undone.`)) return;
-    this.api.deleteDomain(d.id).subscribe(() => { this.load(); this.ctx.load(); });
+  saveEditDomain(): void {
+    const d = this.editingDomain(); if (!d || !this.editDomainForm.name.trim()) return;
+    this.api.updateDomain(d.id, { name: this.editDomainForm.name.trim(), description: this.editDomainForm.description })
+      .subscribe(() => { this.editingDomain.set(null); this.load(); this.ctx.load(); });
+  }
+  deleteDomain(d: Domain): void { this.deleteDomainTarget.set(d); }
+  confirmDeleteDomain(): void {
+    const d = this.deleteDomainTarget(); if (!d) return;
+    this.api.deleteDomain(d.id).subscribe(() => { this.deleteDomainTarget.set(null); this.load(); this.ctx.load(); });
   }
 
   // ---- WBS codes ----
@@ -85,13 +99,19 @@ export class AdminPanelComponent implements OnInit {
     });
   }
   renameWbs(w: WbsCodeView): void {
-    const description = prompt(`Rename ${w.code} (creates a new effective-dated name; history preserved)`, w.currentName);
-    if (!description || description === w.currentName) return;
-    this.api.updateWbs(w.id, { description }).subscribe(() => this.load());
+    this.renameWbsValue = w.currentName;
+    this.renamingWbs.set(w);
   }
-  deleteWbs(w: WbsCodeView): void {
-    if (!confirm(`Delete ${w.code}?`)) return;
-    this.api.deleteWbs(w.id).subscribe(() => this.load());
+  saveRenameWbs(): void {
+    const w = this.renamingWbs(); if (!w) return;
+    const description = this.renameWbsValue.trim();
+    if (!description || description === w.currentName) { this.renamingWbs.set(null); return; }
+    this.api.updateWbs(w.id, { description }).subscribe(() => { this.renamingWbs.set(null); this.load(); });
+  }
+  deleteWbs(w: WbsCodeView): void { this.deleteWbsTarget.set(w); }
+  confirmDeleteWbs(): void {
+    const w = this.deleteWbsTarget(); if (!w) return;
+    this.api.deleteWbs(w.id).subscribe(() => { this.deleteWbsTarget.set(null); this.load(); });
   }
 
   // ---- Users & roles ----

@@ -191,3 +191,68 @@
   (confirm)="confirmRevoke()"
   (cancel)="revokeUser.set(null)" />
 
+<!-- Edit domain modal -->
+@if (editingDomain(); as d) {
+  <div class="backdrop" (click)="editingDomain.set(null)">
+    <div class="allocmodal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <div class="am-head">
+        <div><h3>Edit domain</h3><p class="muted">Update the domain name and description.</p></div>
+        <button class="x" (click)="editingDomain.set(null)"><mat-icon>close</mat-icon></button>
+      </div>
+      <div class="am-fields">
+        <label>Name<input [(ngModel)]="editDomainForm.name" placeholder="e.g. AIM" /></label>
+        <label>Description<input [(ngModel)]="editDomainForm.description" placeholder="Description" /></label>
+      </div>
+      <div class="am-foot">
+        <span class="spacer"></span>
+        <button class="btn ghost" (click)="editingDomain.set(null)">Cancel</button>
+        <button class="btn green" [disabled]="!editDomainForm.name.trim()" (click)="saveEditDomain()">Save changes</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Rename WBS modal -->
+@if (renamingWbs(); as w) {
+  <div class="backdrop" (click)="renamingWbs.set(null)">
+    <div class="allocmodal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <div class="am-head">
+        <div><h3>Rename {{ w.code }}</h3><p class="muted">Creates a new effective-dated name; history is preserved.</p></div>
+        <button class="x" (click)="renamingWbs.set(null)"><mat-icon>close</mat-icon></button>
+      </div>
+      <div class="am-fields">
+        <label>Project name<input [(ngModel)]="renameWbsValue" placeholder="Project / description" /></label>
+      </div>
+      <div class="am-foot">
+        <span class="spacer"></span>
+        <button class="btn ghost" (click)="renamingWbs.set(null)">Cancel</button>
+        <button class="btn green" [disabled]="!renameWbsValue.trim()" (click)="saveRenameWbs()">Save name</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Delete domain confirmation -->
+<dtt-confirm-dialog
+  [open]="!!deleteDomainTarget()"
+  title="Delete domain?"
+  [message]="'Delete the domain ' + (deleteDomainTarget()?.name ?? '') + '?'"
+  detail="This cannot be undone. WBS codes, timesheets and allocations tied to it are affected."
+  confirmLabel="Delete domain"
+  cancelLabel="Cancel"
+  [danger]="true"
+  (confirm)="confirmDeleteDomain()"
+  (cancel)="deleteDomainTarget.set(null)" />
+
+<!-- Delete WBS confirmation -->
+<dtt-confirm-dialog
+  [open]="!!deleteWbsTarget()"
+  title="Delete WBS code?"
+  [message]="'Delete ' + (deleteWbsTarget()?.code ?? '') + ' — ' + (deleteWbsTarget()?.currentName ?? '') + '?'"
+  detail="This cannot be undone."
+  confirmLabel="Delete WBS"
+  cancelLabel="Cancel"
+  [danger]="true"
+  (confirm)="confirmDeleteWbs()"
+  (cancel)="deleteWbsTarget.set(null)" />
+
