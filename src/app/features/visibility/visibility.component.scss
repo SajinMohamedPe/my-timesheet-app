@@ -35,17 +35,15 @@
 table.plan td.cell.pending { color: #6b4e00; }
 table.plan td.cell.mixed { color: #fff; }
 
-/* Over-8h alert: pulsing teal glow + "!" badge (not a legend colour, not black) */
-table.plan td.cell.over8 { position: relative; cursor: pointer; font-weight: 800;
-  animation: dtt-pulse 1.9s ease-in-out infinite; z-index: 1; }
-table.plan td.cell.over8::after, table.plan td.cell.diff::after {
-  content: '!'; position: absolute; top: 1px; right: 1px; width: 14px; height: 14px; border-radius: 50%;
-  background: var(--dtt-alert); color: #fff; font-size: 10px; font-weight: 800; line-height: 14px; text-align: center;
-  z-index: 3; box-shadow: 0 1px 2px rgba(0,0,0,.35); }
-
-/* Differences grid: teal tint fill so mismatches pop out (not black) */
-table.plan td.cell.diff { background: var(--dtt-alert-soft); color: var(--dtt-alert-ink); font-weight: 800;
+/* Anomaly cells — SAME treatment everywhere (Live Plan over-8, Uploaded over-8,
+   Differences mismatch): crimson tint fill + "!" badge + pulse. */
+table.plan td.cell.over8, table.plan td.cell.diff {
+  background: var(--dtt-alert-soft); color: var(--dtt-alert-ink); font-weight: 800;
   position: relative; cursor: pointer; animation: dtt-pulse 1.9s ease-in-out infinite; z-index: 1; }
+table.plan td.cell.over8::after, table.plan td.cell.diff::after {
+  content: '!'; position: absolute; top: 1px; right: 1px; width: 13px; height: 13px; border-radius: 50%;
+  background: var(--dtt-alert); color: #fff; font-size: 9px; font-weight: 800; line-height: 13px; text-align: center;
+  z-index: 3; box-shadow: 0 1px 2px rgba(0,0,0,.35); }
 .diffnote { padding: 4px 20px 12px; }
 table.plan td.cell.clickable { cursor: pointer; }
 table.plan td.cell.clickable:hover { filter: brightness(1.06); outline: 2px solid var(--dtt-green); outline-offset: -2px; }
@@ -101,14 +99,18 @@ table.plan td.cell { font-weight: 700; }
 .block-body { padding: 12px 14px; }
 .block .gridwrap { padding: 8px; }
 table.plan { border-collapse: collapse; table-layout: fixed; width: 100%; }
-table.plan th.emp, table.plan td.emp { position: sticky; left: 0; background: var(--dtt-card); text-align: left; padding: 1px 12px; width: 180px; white-space: nowrap; z-index: 1; font-size: 12px; line-height: 1; }
+table.plan th.emp, table.plan td.emp { position: sticky; left: 0; background: var(--dtt-card); text-align: left; padding: 3px 10px; width: 160px; z-index: 1; font-size: 12px; line-height: 1.15;
+  border-right: 1px solid var(--dtt-line); border-bottom: 1px solid var(--dtt-line-soft); }
+table.plan thead th.emp { border-bottom: 2px solid var(--dtt-line); }
+.empcell { display: flex; align-items: center; gap: 0; }
+.empcell .nm { white-space: normal; overflow-wrap: anywhere; }
 /* Day columns have no fixed width: with table-layout:fixed they share the
    remaining space equally, so the grid always fills the panel (no right gap)
    and stays uniform. min-width on the table keeps them legible + scrollable.
    Cells are short (wider than tall) so records don't look stretched. */
 table.plan th.d { text-align: center; font-size: 11px; color: var(--dtt-muted); padding: 2px 0; }
 table.plan th.d small { display: block; font-size: 9px; }
-table.plan td.cell { height: 18px; border: 1px solid var(--dtt-line-soft); text-align: center; font-size: 10px; color: #fff; line-height: 1; }
+table.plan td.cell { height: 16px; border: 1px solid var(--dtt-line-soft); text-align: center; font-size: 10px; color: #fff; line-height: 1; }
 table.plan td.cell.empty { color: var(--dtt-muted); }
 table.plan td.weekend { background-color: var(--dtt-weekend); }
 .ava { display: inline-flex; width: 16px; height: 16px; border-radius: 50%; background: var(--dtt-green); color: #fff; align-items: center; justify-content: center; font-size: 9px; margin-right: 7px; }

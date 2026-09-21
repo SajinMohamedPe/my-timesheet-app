@@ -143,6 +143,7 @@ export class VisibilityComponent implements OnInit {
   }
   /** Diagonal split (work green + leave colour) for mixed cells. */
   cellBg(c: Cell): string {
+    if (c.over8) return '';   // anomaly styling (crimson) takes over via CSS
     if (c.kind === 'mixed') {
       const hex = c.type ? LEAVE_HEX[c.type] : '#607d8b';
       return `linear-gradient(135deg, #7cb518 0 52%, ${hex} 52% 100%)`;

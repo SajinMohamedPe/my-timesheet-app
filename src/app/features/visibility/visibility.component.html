@@ -63,7 +63,7 @@
         <div class="block-h"><mat-icon class="bi">groups</mat-icon><span class="bname">Team</span>
           <span class="bdesc">{{ ctx.selected()?.name ?? 'All domains' }} · {{ monthLabel() }}</span></div>
       <div class="gridwrap">
-        <table class="plan" [style.min-width.px]="180 + daysInMonth().length * 34">
+        <table class="plan" [style.min-width.px]="160 + daysInMonth().length * 42">
           <thead>
             <tr>
               <th class="emp">Employee</th>
@@ -76,8 +76,11 @@
             @for (r of plan()?.rows ?? []; track r.userId) {
               <tr>
                 <td class="emp" [class.warn]="rowOver8(r.userId)">
-                  <span class="ava">{{ r.name[0] }}</span> {{ r.name }}
-                  @if (rowOver8(r.userId)) { <mat-icon class="warnico" title="Has a day over 8h — click a cell to inspect">warning</mat-icon> }
+                  <div class="empcell">
+                    <span class="ava">{{ r.name[0] }}</span>
+                    <span class="nm">{{ r.name }}</span>
+                    @if (rowOver8(r.userId)) { <mat-icon class="warnico" title="Has a day over 8h — click a cell to inspect">warning</mat-icon> }
+                  </div>
                 </td>
                 @for (d of daysInMonth(); track $index) {
                   @let c = cell(r.userId, d);
@@ -100,7 +103,7 @@
       <div class="block-h"><mat-icon class="bi">upload_file</mat-icon><span class="bname">Uploaded Timesheet</span>
         <span class="bdesc">{{ monthLabel() }} · external hours for staff (from the uploaded file)</span></div>
       <div class="gridwrap">
-        <table class="plan" [style.min-width.px]="180 + daysInMonth().length * 34">
+        <table class="plan" [style.min-width.px]="160 + daysInMonth().length * 42">
           <thead>
             <tr>
               <th class="emp">Resource</th>
@@ -112,7 +115,7 @@
           <tbody>
             @for (name of uploadedNames(); track name) {
               <tr>
-                <td class="emp"><span class="ava">{{ name[0] }}</span> {{ name }}</td>
+                <td class="emp"><div class="empcell"><span class="ava">{{ name[0] }}</span><span class="nm">{{ name }}</span></div></td>
                 @for (d of daysInMonth(); track $index) {
                   @let h = uploadedHours(name, d);
                   <td class="cell {{ h > 0 ? 'work' : 'empty' }}" [class.weekend]="isWeekend(d)" [class.over8]="h > 8"
@@ -135,7 +138,7 @@
         <span class="bdesc">in-app (live plan) vs uploaded · click a flagged day to fix it</span></div>
       @if (diffPeople().length) {
         <div class="gridwrap">
-          <table class="plan" [style.min-width.px]="180 + daysInMonth().length * 34">
+          <table class="plan" [style.min-width.px]="160 + daysInMonth().length * 42">
             <thead>
               <tr>
                 <th class="emp">Employee</th>
@@ -147,7 +150,7 @@
             <tbody>
               @for (name of diffPeople(); track name) {
                 <tr>
-                  <td class="emp warn"><span class="ava">{{ name[0] }}</span> {{ name }}</td>
+                  <td class="emp warn"><div class="empcell"><span class="ava">{{ name[0] }}</span><span class="nm">{{ name }}</span></div></td>
                   @for (d of daysInMonth(); track $index) {
                     @let dc = diffCell(name, d);
                     <td class="cell {{ dc.differ ? 'diff' : 'empty' }}" [class.weekend]="isWeekend(d)"
