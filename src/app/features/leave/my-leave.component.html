@@ -19,7 +19,7 @@
           <tr>
             <td><b>{{ rangeLabel(r) }}</b></td>
             <td><span class="tdot" [style.background]="typeColor(r.type)"></span>{{ typeLabel(r.type) }}</td>
-            <td>{{ r.days }}{{ r.halfDay ? ' × ½' : '' }}</td>
+            <td>{{ r.days }}</td>
             <td>{{ r.totalHours.toFixed(2) }}</td>
             <td><span class="chip" [class]="statusClass(r.status)">{{ r.status }}</span></td>
             <td class="notes">
@@ -45,7 +45,7 @@
   </div>
 </div>
 
-<!-- Request leave pop-up -->
+<!-- Request leave pop-up (day builder) -->
 @if (showForm()) {
   <div class="backdrop" (click)="closeForm()">
     <div class="reqmodal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
@@ -54,57 +54,66 @@
         <button class="x" (click)="closeForm()"><mat-icon>close</mat-icon></button>
       </div>
 
-      <div class="field">
-        <div class="flabel">Leave type</div>
-        <div class="typegrid">
-          @for (t of types; track t.type) {
-            <button type="button" class="typechip" [class.on]="form.type === t.type"
-              [style.--tc]="t.color" (click)="form.type = t.type">
-              <span class="tdot" [style.background]="t.color"></span>{{ t.label }}
-            </button>
-          }
+      <!-- Fixed "add days" row: type + range live here, so the calendar is always in one place -->
+      <div class="adder">
+        <div class="af type">
+          <div class="flabel">Leave type</div>
+          <dtt-color-select [options]="typeOptions" [value]="draftType()" (valueChange)="draftType.set($any($event))" />
         </div>
-      </div>
-
-      <div class="frow">
-        <div class="field">
+        <div class="af">
           <div class="flabel">Start date</div>
           <div class="dateinput" (click)="sp.open()">
-            <input [matDatepicker]="sp" [(ngModel)]="form.start" readonly />
+            <input [matDatepicker]="sp" [(ngModel)]="draftStartModel" readonly placeholder="DD/MM/YYYY" />
             <mat-datepicker-toggle [for]="sp"><mat-icon matDatepickerToggleIcon>calendar_today</mat-icon></mat-datepicker-toggle>
             <mat-datepicker #sp></mat-datepicker>
           </div>
         </div>
-        <div class="field">
+        <div class="af">
           <div class="flabel">End date</div>
           <div class="dateinput" (click)="ep.open()">
-            <input [matDatepicker]="ep" [(ngModel)]="form.end" [min]="form.start" readonly />
+            <input [matDatepicker]="ep" [(ngModel)]="draftEndModel" [min]="draftStart()" readonly placeholder="DD/MM/YYYY" />
             <mat-datepicker-toggle [for]="ep"><mat-icon matDatepickerToggleIcon>calendar_today</mat-icon></mat-datepicker-toggle>
             <mat-datepicker #ep></mat-datepicker>
           </div>
         </div>
+        <button class="btn green add" [disabled]="!canAdd()" (click)="addDays()"><mat-icon>playlist_add</mat-icon> Add days</button>
       </div>
 
-      <div class="field">
-        <div class="flabel">Duration</div>
-        <div class="seg">
-          <button type="button" [class.on]="!form.halfDay" (click)="form.halfDay = false">Full day <span>7.25h</span></button>
-          <button type="button" [class.on]="form.halfDay" (click)="form.halfDay = true">Half day <span>4h</span></button>
-        </div>
+      <!-- Selected days: each with its own Full/Half toggle -->
+      <div class="daylist">
+        @if (!selected().length) {
+          <div class="dl-empty muted">Pick a type and a date range, then <b>Add days</b>. You can add several ranges and types before submitting.</div>
+        } @else {
+          <div class="dl-head"><span>{{ selected().length }} day(s) · {{ totalHours().toFixed(2) }}h</span>
+            @if (!editingId() && requestCount() > 1) { <span class="muted">· {{ requestCount() }} requests (one per type)</span> }
+          </div>
+          @for (d of selected(); track d.date) {
+            <div class="dayrow">
+              <span class="tdot" [style.background]="typeColor(d.type)"></span>
+              <span class="dr-date">{{ fmtDate(d.date) }}</span>
+              <span class="dr-type muted">{{ typeLabel(d.type) }}</span>
+              <div class="seg sm">
+                <button type="button" [class.on]="!d.halfDay" (click)="setHalf(d.date, false)">Full</button>
+                <button type="button" [class.on]="d.halfDay" (click)="setHalf(d.date, true)">Half</button>
+              </div>
+              <button class="dr-x" (click)="removeDay(d.date)"><mat-icon>close</mat-icon></button>
+            </div>
+          }
+        }
       </div>
 
       <div class="field">
         <div class="flabel">Reason <span class="opt">(optional)</span></div>
-        <input class="txt" type="text" [(ngModel)]="form.reason" placeholder="e.g. Family event" />
+        <input class="txt" type="text" [(ngModel)]="reason" placeholder="e.g. Family event" />
       </div>
 
-      <p class="hint"><mat-icon>info</mat-icon> Weekends and Irish bank holidays in the range are skipped. Every request needs domain-admin approval before it shows on your timesheet.</p>
+      <p class="hint"><mat-icon>info</mat-icon> Weekends and Irish bank holidays are skipped automatically. Every request needs domain-admin approval before it shows on your timesheet.</p>
       @if (error()) { <p class="err">{{ error() }}</p> }
 
       <div class="rm-foot">
         <button class="btn ghost" (click)="closeForm()">Cancel</button>
         <button class="btn green" [disabled]="!canSubmit() || saving()" (click)="submit()">
-          {{ editingId() ? 'Save changes' : 'Submit request' }}
+          {{ editingId() ? 'Save changes' : (requestCount() > 1 ? 'Submit ' + requestCount() + ' requests' : 'Submit request') }}
         </button>
       </div>
     </div>

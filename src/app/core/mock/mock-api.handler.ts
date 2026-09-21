@@ -420,6 +420,17 @@ function expandWorkingDays(start: string, end: string): string[] {
   return out;
 }
 
+/** Build a sorted, de-duped {date,halfDay} list from either body.days or a start/end range. */
+function normaliseDays(body: any): { date: string; halfDay: boolean }[] {
+  const map = new Map<string, boolean>();
+  if (Array.isArray(body?.days)) {
+    for (const d of body.days) { if (d?.date) map.set(d.date, !!d.halfDay); }
+  } else if (body?.startDate && body?.endDate && body.endDate >= body.startDate) {
+    for (const date of expandWorkingDays(body.startDate, body.endDate)) map.set(date, !!body.halfDay);
+  }
+  return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([date, halfDay]) => ({ date, halfDay }));
+}
+
 function toLeaveView(db: MockDb, rows: LeaveRequest[]): LeaveRequestView {
   const first = rows[0];
   const user = db.get('users').find((u) => u.id === first.userId);
@@ -430,6 +441,7 @@ function toLeaveView(db: MockDb, rows: LeaveRequest[]): LeaveRequestView {
     domainId: first.domainId, domainName: dom?.name ?? first.domainId, type: first.type,
     startDate: first.startDate, endDate: first.endDate, halfDay: first.halfDay,
     hoursPerDay: first.hours, days: rows.length, totalHours: Math.round(rows.reduce((s, r) => s + r.hours, 0) * 100) / 100,
+    perDay: [...rows].sort((a, b) => a.date.localeCompare(b.date)).map((r) => ({ date: r.date, halfDay: r.halfDay })),
     reason: first.reason, status: first.status, requestedAt: first.requestedAt,
     decidedBy: first.decidedBy, decidedByName: decider?.name, decidedAt: first.decidedAt,
     decisionReason: first.decisionReason,
@@ -479,27 +491,28 @@ function leaveRequestsRoute(db: MockDb, me: User, req: ParsedReq): MockResult {
   if (method === 'POST' && !p[2]) {
     const userId = body.userId ?? me.id;
     const domainId = body.domainId as string;
-    if (!domainId || !body.type || !body.startDate || !body.endDate) return err(400, 'Missing required fields');
-    if (body.endDate < body.startDate) return err(400, 'End date is before start date');
+    if (!domainId || !body.type) return err(400, 'Missing required fields');
     const who = db.get('users').find((u) => u.id === userId);
     if (!who || !who.domainIds.includes(domainId)) return err(400, 'User is not in that domain');
-    const days = expandWorkingDays(body.startDate, body.endDate);
-    if (!days.length) return err(400, 'No working days in the selected range');
-    const halfDay = body.type === 'BANK_HOLIDAY' ? false : !!body.halfDay;
-    const hours = body.type === 'BANK_HOLIDAY' ? MAX_LEAVE_HOURS_PER_DAY : (halfDay ? HALF_DAY_HOURS : MAX_LEAVE_HOURS_PER_DAY);
+    // Accept either an explicit per-day list (preferred) or a start/end range.
+    const dayList = normaliseDays(body);
+    if (!dayList.length) return err(400, 'No working days selected');
     const submissionId = uid('lr');
     const requestedAt = new Date().toISOString();
-    for (const d of days) {
+    const startDate = dayList[0].date, endDate = dayList[dayList.length - 1].date;
+    for (const d of dayList) {
+      const halfDay = body.type === 'BANK_HOLIDAY' ? false : d.halfDay;
       leave.push({
-        id: uid('l'), submissionId, userId, domainId, type: body.type, date: d, hours, halfDay,
-        startDate: body.startDate, endDate: body.endDate, reason: body.reason, status: 'PENDING', requestedAt,
+        id: uid('l'), submissionId, userId, domainId, type: body.type, date: d.date,
+        hours: halfDay ? HALF_DAY_HOURS : MAX_LEAVE_HOURS_PER_DAY, halfDay,
+        startDate, endDate, reason: body.reason, status: 'PENDING', requestedAt,
       });
     }
     db.save();
     return created(leaveViewFor(db, submissionId));
   }
 
-  // Edit a PENDING request (re-expands the range).
+  // Edit a PENDING request (replaces its per-day rows).
   if (method === 'PUT' && p[2]) {
     const rows = leave.filter((l) => l.submissionId === p[2]);
     if (!rows.length) return err(404, 'Request not found');
@@ -507,18 +520,16 @@ function leaveRequestsRoute(db: MockDb, me: User, req: ParsedReq): MockResult {
     if (first.userId !== me.id && !isAdmin(me)) return err(403, 'Forbidden');
     if (first.status !== 'PENDING') return err(400, 'Only pending requests can be edited');
     const type = body.type ?? first.type;
-    const startDate = body.startDate ?? first.startDate;
-    const endDate = body.endDate ?? first.endDate;
-    if (endDate < startDate) return err(400, 'End date is before start date');
-    const halfDay = type === 'BANK_HOLIDAY' ? false : (body.halfDay ?? first.halfDay);
     const reason = body.reason !== undefined ? body.reason : first.reason;
-    const days = expandWorkingDays(startDate, endDate);
-    if (!days.length) return err(400, 'No working days in the selected range');
-    const hours = type === 'BANK_HOLIDAY' ? MAX_LEAVE_HOURS_PER_DAY : (halfDay ? HALF_DAY_HOURS : MAX_LEAVE_HOURS_PER_DAY);
+    const dayList = normaliseDays(body);
+    if (!dayList.length) return err(400, 'No working days selected');
+    const startDate = dayList[0].date, endDate = dayList[dayList.length - 1].date;
     for (let i = leave.length - 1; i >= 0; i--) if (leave[i].submissionId === p[2]) leave.splice(i, 1);
-    for (const d of days) {
+    for (const d of dayList) {
+      const halfDay = type === 'BANK_HOLIDAY' ? false : d.halfDay;
       leave.push({
-        id: uid('l'), submissionId: p[2], userId: first.userId, domainId: first.domainId, type, date: d, hours, halfDay,
+        id: uid('l'), submissionId: p[2], userId: first.userId, domainId: first.domainId, type, date: d.date,
+        hours: halfDay ? HALF_DAY_HOURS : MAX_LEAVE_HOURS_PER_DAY, halfDay,
         startDate, endDate, reason, status: 'PENDING', requestedAt: first.requestedAt,
       });
     }

@@ -183,16 +183,18 @@ per employee) or PDF (one section per employee). Quick per-person XLS/PDF cards.
 Generated client-side now; backend export endpoints are documented for later.
 
 ### My Leave (`/my-leave`, all users)
-Where leave is requested and tracked. A **"Request leave" pop-up** collects: leave
-type (colored chips — Annual/Sick/Training/Internal; Bank Holiday is auto so not
-requestable), **Start/End date** (Material datepicker, inline), **Full day 7.25h /
-Half day 4h**, and an optional reason. Domain is **auto-assigned** (the user's
-domain — no picker). Submitting creates one **request** that the server expands to
-per-day leave over **working days** (skips weekends + Irish bank holidays), uniform
-full/half hours, status PENDING. Below the button: **Pending / All** tabs listing
-the user's requests (range, type, days, hours, status, decision reason, who decided).
-**Pending** requests can be **edited** (re-expands) or **withdrawn**; approved/rejected
-are locked (change = new request). See decisions #16.
+Where leave is requested and tracked. A **"Request leave" pop-up** is a **day
+builder**: pick a leave **type** (colored **dropdown** — Annual/Sick/Training/
+Internal; Bank Holiday is auto, not requestable) + a **date range** (Material
+datepicker, DD/MM/YYYY, anchored in a fixed row so the calendar is consistent),
+then **Add days** appends the working days (weekends + Irish bank holidays skipped)
+to a list where **each day has its own Full 7.25h / Half 4h toggle**. You can add
+several ranges/types before submitting; on submit it saves **one request per leave
+type** (so a single action can create multiple requests). Domain is **auto-assigned**
+(no picker). Reopening always starts **fresh**. Below the button: **Pending / All**
+tabs listing the user's requests (range, type, days, hours, status, decision reason,
+who decided). **Pending** requests can be **edited** or **withdrawn**;
+approved/rejected are locked (change = new request). See decision #16.
 
 ### Leave Approvals (`/leave-approvals`, admin)
 Queue grouped **one row per request** (range, type, duration, reason). Pending tab +
@@ -282,11 +284,12 @@ These were resolved through requirements interviews; keep them unless explicitly
 15. **Dark mode for everyone.** A per-user theme toggle (persisted, OS-default)
     is available to all roles. Everything is themed through `--dtt-*` tokens so
     no component hard-codes colours; this is frontend-only (no backend).
-16. **Leave is requested as a range via My Leave, not typed on the grid.** A
-    request = start/end + type + Full(7.25h)/Half(4h); the server expands it to
-    per-day rows over **working days** (skips weekends + Irish bank holidays),
-    grouped by `submissionId`. **Half = flat 4h**, uniform across the range. Domain
-    is auto-assigned (no picker). Requests need approval; **only APPROVED leave
+16. **Leave is requested via the My Leave day-builder, not typed on the grid.** The
+    user builds a set of days (type + range → working days, weekends + Irish bank
+    holidays skipped) with a **per-day Full(7.25h)/Half(4h)** choice; days are
+    grouped by `submissionId`. **Half = flat 4h**, chosen per day. One submission
+    can span several types and saves **one request per type**. Domain is
+    auto-assigned (no picker). Requests need approval; **only APPROVED leave
     shows on the timesheet (read-only)**, pending+approved show on Monthly View,
     rejected is surfaced on Home with the admin's reason. Pending requests are
     editable/withdrawable; approved ones change only via a **new request that

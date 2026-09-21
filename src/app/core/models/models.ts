@@ -110,6 +110,7 @@ export interface LeaveRequestView {
   hoursPerDay: number;
   days: number;            // number of working days in the request
   totalHours: number;
+  perDay: { date: string; halfDay: boolean }[]; // per-day breakdown (for editing)
   reason?: string;
   status: LeaveStatus;
   requestedAt: string;

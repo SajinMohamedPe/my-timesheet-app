@@ -88,10 +88,10 @@ export class ApiService {
   getLeaveRequests(q: { scope?: 'mine' | 'queue'; status?: string; domainId?: string } = {}) {
     return this.http.get<LeaveRequestView[]>(`${base}/leave-requests`, { params: params(q) });
   }
-  createLeaveRequest(r: { domainId: string; type: string; startDate: string; endDate: string; halfDay: boolean; reason?: string }) {
+  createLeaveRequest(r: { domainId: string; type: string; reason?: string; days: { date: string; halfDay: boolean }[] }) {
     return this.http.post<LeaveRequestView>(`${base}/leave-requests`, r);
   }
-  updateLeaveRequest(id: string, r: Partial<{ type: string; startDate: string; endDate: string; halfDay: boolean; reason: string }>) {
+  updateLeaveRequest(id: string, r: { type?: string; reason?: string; days: { date: string; halfDay: boolean }[] }) {
     return this.http.put<LeaveRequestView>(`${base}/leave-requests/${id}`, r);
   }
   withdrawLeaveRequest(id: string) { return this.http.post<LeaveRequestView>(`${base}/leave-requests/${id}/withdraw`, {}); }
